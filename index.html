@@ -19,9 +19,8 @@
             --border-color: #cbd5e1;
             --sunday-color: #dc2626;
             --holiday-bg: #fef2f2;
-            --event-text-color: #333333;
+            --event-text-color: #1e293b;
             
-            /* Safe Areas for iOS */
             --safe-area-top: env(safe-area-inset-top, 0px);
             --safe-area-bottom: env(safe-area-inset-bottom, 0px);
             --safe-area-left: env(safe-area-inset-left, 0px);
@@ -61,6 +60,29 @@
             margin-bottom: 5px;
         }
 
+        .status-panel {
+            margin-bottom: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #475569;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .feedback-msg {
+            color: #16a34a;
+            font-weight: 700;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .feedback-msg.show {
+            opacity: 1;
+        }
+
         .editor-section {
             background: var(--card-bg);
             padding: 20px;
@@ -84,7 +106,7 @@
             border: 1px solid var(--border-color);
             border-radius: 8px;
             font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
-            font-size: 16px; /* Prevents iOS auto-zoom */
+            font-size: 16px;
             resize: vertical;
             margin-bottom: 18px;
             outline: none;
@@ -98,6 +120,12 @@
 
         .button-group {
             display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .button-row {
+            display: flex;
             gap: 12px;
         }
 
@@ -106,9 +134,9 @@
             background-color: var(--primary-color);
             color: white;
             border: none;
-            height: 48px; /* Enhanced iOS touch target */
-            padding: 0 24px;
-            font-size: 15px;
+            height: 48px;
+            padding: 0 12px;
+            font-size: 14px;
             font-weight: 600;
             border-radius: 8px;
             cursor: pointer;
@@ -119,20 +147,34 @@
             user-select: none;
         }
 
-        button:active {
+        button:active:not(:disabled) {
             transform: scale(0.98);
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             background-color: var(--primary-hover);
+        }
+
+        button:disabled {
+            background-color: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
         }
 
         button.secondary {
             background-color: #475569;
         }
 
-        button.secondary:hover {
+        button.secondary:hover:not(:disabled) {
             background-color: #334155;
+        }
+
+        button.danger {
+            background-color: #dc2626;
+        }
+
+        button.danger:hover:not(:disabled) {
+            background-color: #b91c1c;
         }
 
         .calendar-wrapper {
@@ -140,7 +182,7 @@
             flex-direction: column;
             gap: 32px;
             width: 100%;
-            overflow-x: auto; /* Fallback preservation for extremely small displays */
+            overflow-x: auto;
         }
 
         .calendar-month {
@@ -148,7 +190,6 @@
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
-            page-break-after: always;
             min-width: 280px;
         }
 
@@ -314,7 +355,173 @@
             width: 100%;
         }
 
-        /* Responsive Layout Grid Rules */
+        .day-cell.is-today .day-number {
+            background-color: var(--primary-color);
+            color: #fff !important;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: -2px 0 0 -2px;
+        }
+
+        body.view-mode-active {
+            background-color: #ffffff;
+        }
+
+        body.view-mode-active .container {
+            grid-template-columns: 1fr !important;
+            max-width: 1000px;
+        }
+
+        body.view-mode-active header,
+        body.view-mode-active .editor-section {
+            display: none;
+        }
+
+        #viewCalendar {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            background: #ffffff;
+        }
+
+        body.view-mode-active #viewCalendar {
+            display: flex;
+        }
+
+        .view-mode-navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .view-mode-nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .view-mode-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            min-width: 180px;
+            text-align: center;
+        }
+
+        .nav-arrow-btn {
+            background: none;
+            color: var(--primary-color);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .nav-arrow-btn:hover:not(:disabled) {
+            background-color: #f1f5f9;
+        }
+
+        .view-mode-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            border-top: 1px solid var(--border-color);
+            border-left: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        .view-mode-cell {
+            height: 140px;
+            padding: 8px;
+            border-right: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            background-color: #fff;
+            overflow: hidden;
+        }
+
+        .view-mode-cell.other-month {
+            background-color: #f8fafc;
+            color: #cbd5e1;
+        }
+
+        .view-mode-cell.sunday .view-mode-day-num {
+            color: var(--sunday-color);
+        }
+
+        .view-mode-cell.holiday {
+            background-color: var(--holiday-bg);
+        }
+
+        .view-mode-cell.holiday .view-mode-day-num {
+            color: var(--sunday-color);
+        }
+
+        .view-mode-cell.is-today .view-mode-day-num {
+            background-color: var(--primary-color);
+            color: #fff !important;
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .view-mode-day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .view-mode-day-num {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .view-mode-events {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow: hidden;
+            flex-grow: 1;
+        }
+
+        .view-tag {
+            font-size: 11px;
+            padding: 3px 6px;
+            border-radius: 6px;
+            color: var(--event-text-color);
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+            width: 100%;
+        }
+
+        .more-indicator {
+            font-size: 10px;
+            color: #64748b;
+            font-weight: 600;
+            padding-left: 4px;
+        }
+
         @media (min-width: 992px) {
             .container {
                 grid-template-columns: 320px 1fr;
@@ -324,9 +531,6 @@
                 position: sticky;
                 top: calc(20px + var(--safe-area-top));
             }
-            .button-group {
-                flex-direction: column;
-            }
         }
 
         @media (min-width: 1200px) {
@@ -335,77 +539,86 @@
             }
         }
 
-        /* Mobile Adjustments for Grid Rendering Optimization */
         @media (max-width: 600px) {
             body {
                 padding: calc(12px + var(--safe-area-top)) calc(12px + var(--safe-area-right)) calc(12px + var(--safe-area-bottom)) calc(12px + var(--safe-area-left));
             }
-            .editor-section {
-                padding: 16px;
-            }
-            .calendar-month {
-                padding: 12px;
-            }
-            .day-cell {
-                height: 90px;
-                padding: 4px;
-            }
-            .day-number {
-                font-size: 12px;
-            }
-            .holiday-label {
-                font-size: 9px;
-                max-width: 65%;
-            }
-            .event-item {
-                font-size: 9px;
-                padding: 2px 3px;
-                -webkit-line-clamp: 2;
-            }
-            .weekday-header {
-                padding: 6px 2px;
-                font-size: 11px;
-            }
+            .editor-section { padding: 16px; }
+            .calendar-month { padding: 12px; }
+            .day-cell { height: 90px; padding: 4px; }
+            .day-number { font-size: 12px; }
+            .event-item { font-size: 9px; padding: 2px 3px; }
+            .view-mode-cell { height: 100px; padding: 4px; }
+            .view-tag { font-size: 9px; padding: 1px 3px; }
         }
 
         @media print {
             @page {
                 size: A4 landscape;
-                margin: 10mm;
+                margin: 5mm 8mm 5mm 8mm;
             }
-            body {
-                background: none;
+            html, body {
+                background: #fff !important;
+                color: #000 !important;
+                width: 100%;
+                height: 100%;
+                margin: 0 !important;
                 padding: 0 !important;
-                color: #000;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
-            .editor-section, .button-group, header {
+            .editor-section, .button-group, header, #viewCalendar {
                 display: none !important;
             }
             .container {
-                display: block;
-                max-width: 100%;
-                margin: 0;
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            #fullCalendar {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 32px !important;
+                width: 100% !important;
+                overflow: visible !important;
             }
             .calendar-month {
-                box-shadow: none;
-                padding: 0;
-                margin: 0;
-                page-break-after: always;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                height: 195mm !important; 
+                page-break-before: always !important;
+                page-break-after: always !important;
+                page-break-inside: avoid !important;
+                display: flex !important;
+                flex-direction: column !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
-            .calendar-month:last-child {
-                page-break-after: avoid;
-            }
-            .day-cell {
-                height: 95px;
+            .calendar-month:first-child { page-break-before: avoid !important; }
+            .calendar-title { font-size: 1.6rem !important; margin-top: 2mm !important; margin-bottom: 3mm !important; }
+            .month-legend { padding: 6px 12px !important; margin-bottom: 3mm !important; background: #f8fafc !important; border: 1px solid #94a3b8 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .legend-item { background: #ffffff !important; border: 1px solid #e2e8f0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .legend-color { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; border-radius: 3px !important; }
+            .calendar-grid {
+                flex-grow: 1 !important;
+                display: grid !important;
+                grid-template-rows: auto repeat(auto-fit, minmax(0, 1fr)) !important;
+                height: 100% !important;
+                border-top: 1px solid #000 !important;
+                border-left: 1px solid #000 !important;
+                border-radius: 0 !important;
                 background-color: #fff !important;
             }
-            .day-cell.other-month {
-                color: #cbd5e1;
-            }
-            .event-item {
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
-            }
+            .weekday-header { background: #f1f5f9 !important; padding: 4px 2px !important; font-size: 11px !important; border-right: 1px solid #000 !important; border-bottom: 1px solid #000 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .day-cell { height: auto !important; min-height: 0 !important; padding: 4px !important; border-right: 1px solid #000 !important; border-bottom: 1px solid #000 !important; background-color: #fff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .day-cell.other-month { background-color: #f1f5f9 !important; }
+            .day-cell.holiday { background-color: var(--holiday-bg) !important; }
+            .event-item { font-size: 9px !important; padding: 1px 3px !important; border-left: 3px solid rgba(0,0,0,0.18) !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
     </style>
 </head>
@@ -417,70 +630,90 @@
     </header>
 
     <div class="editor-section">
+        <div class="status-panel">
+            <span id="currentMonthView">Editing: None</span>
+            <span id="feedbackMsg" class="feedback-msg">Calendar generated and saved</span>
+        </div>
+
         <label for="eventInput">Enter Events (one per line):</label>
         <textarea id="eventInput" placeholder="1/1-3/1 Math&#10;17-23/6 Term 3 Assessment&#10;29/6 School Holiday&#10;6/5/2026 Math 9:00-10:00&#10;6/5/2026 - 30/5/2026 Training (Mon/Wed)&#10;1/6-30/7 KK Swim 1000-1100 (Mon) (skip15/6-23/6)&#10;1/6-30/6 English (skipMath)"></textarea>
         
         <div class="button-group">
-            <button onclick="generateCalendar()">Generate Calendar</button>
-            <button class="secondary" onclick="exportPDF()">Export PDF</button>
+            <div class="button-row">
+                <button onclick="generateCalendarBtn()">Generate</button>
+                <button class="secondary" onclick="exportPDF()">Export PDF</button>
+            </div>
+            <div class="button-row">
+                <button id="prevBtn" class="secondary" onclick="navigateMonth(-1)">Previous</button>
+                <button id="nextBtn" class="secondary" onclick="navigateMonth(1)">Next</button>
+            </div>
+            <div class="button-row">
+                <button class="secondary" onclick="enterViewMode()">View</button>
+                <button class="danger" onclick="clearEditor()">Clear</button>
+            </div>
         </div>
     </div>
 
-    <div id="calendarOutput" class="calendar-wrapper"></div>
+    <div id="fullCalendar" class="calendar-wrapper"></div>
+
+    <div id="viewCalendar">
+        <div class="view-mode-navbar">
+            <button class="secondary" style="max-width: 100px;" onclick="exitViewMode()">Back</button>
+            <div class="view-mode-nav-controls">
+                <button id="viewPrevArrow" class="nav-arrow-btn" onclick="navigateViewMonth(-1)">←</button>
+                <div id="viewModeHeaderTitle" class="view-mode-title">Month Year</div>
+                <button id="viewNextArrow" class="nav-arrow-btn" onclick="navigateViewMonth(1)">→</button>
+            </div>
+            <div style="width: 100px;"></div>
+        </div>
+        <div id="viewModeCalendarGrid" class="view-mode-grid"></div>
+    </div>
 </div>
 
 <script>
     const currentYear = 2026;
+    let mode = "edit"; 
+    let editingMonth = ""; 
+    let currentSavedMonthsList = [];
+    let currentMonthIndex = -1;
 
     const hkHolidays = {
-        "1-1": "New Year",
-        "4-4": "Ching Ming",
-        "5-1": "Labour Day",
-        "7-1": "HKSAR Day",
-        "10-1": "National Day",
-        "12-25": "Christmas"
+        "1-1": "New Year", "4-4": "Ching Ming", "5-1": "Labour Day",
+        "7-1": "HKSAR Day", "10-1": "National Day", "12-25": "Christmas"
     };
 
     const dayMap = {
-        'sun': 0, 'sunday': 0,
-        'mon': 1, 'monday': 1,
-        'tue': 2, 'tuesday': 2, 'wed': 3, 'wednesday': 3,
-        'thu': 4, 'thursday': 4, 'fri': 5, 'friday': 5,
+        'sun': 0, 'sunday': 0, 'mon': 1, 'monday': 1, 'tue': 2, 'tuesday': 2,
+        'wed': 3, 'wednesday': 3, 'thu': 4, 'thursday': 4, 'fri': 5, 'friday': 5,
         'sat': 6, 'saturday': 6
     };
 
     const keywordList = ['exam', 'holiday', 'vacation', 'sun', 'sunday', 'mon', 'monday', 'tue', 'tuesday', 'wed', 'wednesday', 'thu', 'thursday', 'fri', 'friday', 'sat', 'saturday'];
 
     const pastelPalette = [
-        "#cce5ff",
-        "#ccf0cc",
-        "#fff2cc",
-        "#f4cccc",
-        "#e6ccff",
-        "#d9ead3",
-        "#fce5cd",
-        "#d0e0e3",
-        "#ead1dc",
-        "#eeeeee"
+        "#E2F0D9", "#FCE4D6", "#FFF2CC", "#DDEBF7", "#E1D5E7", 
+        "#F8CECC", "#E6F4EA", "#FFF0F5", "#E0F2F1", "#FFF4E0", 
+        "#EBF5FB", "#F5EEF8", "#FDEDEC", "#EAFAF1", "#FEF9E7"
     ];
 
     let eventColorAssignments = new Map();
     let globalSkipNames = [];
 
-    function resetEventColors() {
-        eventColorAssignments.clear();
-    }
+    function resetEventColors() { eventColorAssignments.clear(); }
 
     function stringToColor(str) {
-        if (!eventColorAssignments.has(str)) {
+        const normalizedStr = str.trim().toLowerCase();
+        if (!eventColorAssignments.has(normalizedStr)) {
             const nextIndex = eventColorAssignments.size % pastelPalette.length;
-            eventColorAssignments.set(str, pastelPalette[nextIndex]);
+            eventColorAssignments.set(normalizedStr, pastelPalette[nextIndex]);
         }
-        return eventColorAssignments.get(str);
+        return eventColorAssignments.get(normalizedStr);
     }
 
-    function normalizeDashes(str) {
-        return str.replace(/[–—]/g, '-');
+    function normalizeDashes(str) { return str.replace(/[–—]/g, '-'); }
+
+    function cleanDisplayString(str) {
+        return str.replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
     }
 
     function parseDays(dayStr) {
@@ -489,9 +722,7 @@
         const days = [];
         tokens.forEach(t => {
             const clean = t.trim();
-            if (dayMap[clean] !== undefined) {
-                days.push(dayMap[clean]);
-            }
+            if (dayMap[clean] !== undefined) days.push(dayMap[clean]);
         });
         return days;
     }
@@ -508,9 +739,7 @@
 
     function parseYear(yearStr) {
         if (!yearStr) return currentYear;
-        if (yearStr.length === 2) {
-            return 2000 + parseInt(yearStr);
-        }
+        if (yearStr.length === 2) return 2000 + parseInt(yearStr);
         return parseInt(yearStr);
     }
 
@@ -531,7 +760,6 @@
             }
             return hour * 60 + min;
         }
-
         match = text.match(formatPureDigits);
         if (match) {
             let hour = parseInt(match[1]);
@@ -543,7 +771,6 @@
             }
             return hour * 60 + min;
         }
-
         match = text.match(formatHourAmpm);
         if (match) {
             let hour = parseInt(match[1]);
@@ -552,97 +779,75 @@
             if (ampm === 'am' && hour === 12) hour = 0;
             return hour * 60;
         }
-
         match = text.match(formatHourDash);
-        if (match) {
-            const hour = parseInt(match[1]);
-            return hour * 60;
-        }
-
+        if (match) return parseInt(match[1]) * 60;
         return null;
     }
 
-    function parseSkipDirectives(line, targetYear) {
-        const skipDates = [];
-        const skipRanges = [];
-        const skipDaysList = [];
-        let skipHolidays = false;
-        let skipExams = false;
+    function extractCleanTitleAndTime(displayText) {
+        let clean = cleanDisplayString(displayText);
+        const timeRegex = /((?:1[0-2]|0?[1-9]):[0-5][0-9]\s*(?:am|pm)?\b)|(\b(?:[0-1][0-9]|2[0-3]|[1-9])[0-5][0-9]\s*(?:am|pm)?\b)|(\b(?:[0-1][0-9]|2[0-3]|[1-9])\s*(?:am|pm)\b)/i;
+        let timeString = "";
+        const match = clean.match(timeRegex);
+        if (match) {
+            timeString = match[0].trim();
+        }
         
+        keywordList.forEach(keyword => {
+            const regex = new RegExp('\\b' + keyword + '\\b', 'gi');
+            clean = clean.replace(regex, '');
+        });
+        clean = clean.replace(/\s+/g, ' ').trim();
+        return timeString ? `${clean} ${timeString}` : clean;
+    }
+
+    function parseSkipDirectives(line, targetYear) {
+        const skipDates = []; const skipRanges = []; const skipDaysList = [];
+        let skipHolidays = false; let skipExams = false;
         const skipRegex = /\(\s*skip\s*:?\s*([^)]+)\)/ig;
-        let match;
-        let cleanedLine = line;
+        let match; let cleanedLine = line;
 
         while ((match = skipRegex.exec(line)) !== null) {
             const contents = match[1].trim();
             const tokens = contents.split(/[\s,&]+/);
-            
             tokens.forEach(token => {
-                const cleanToken = token.trim();
-                const lowerToken = cleanToken.toLowerCase();
-                
-                if (lowerToken === 'holiday' || lowerToken === 'holidays') {
-                    skipHolidays = true;
-                    return;
-                }
-                if (lowerToken === 'exam' || lowerToken === 'exams') {
-                    skipExams = true;
-                    return;
-                }
-                if (dayMap[lowerToken] !== undefined) {
-                    skipDaysList.push(dayMap[lowerToken]);
-                    return;
-                }
-
+                const cleanToken = token.trim(); const lowerToken = cleanToken.toLowerCase();
+                if (lowerToken === 'holiday' || lowerToken === 'holidays') { skipHolidays = true; return; }
+                if (lowerToken === 'exam' || lowerToken === 'exams') { skipExams = true; return; }
+                if (dayMap[lowerToken] !== undefined) { skipDaysList.push(dayMap[lowerToken]); return; }
                 if (cleanToken.includes('-') && cleanToken.includes('/')) {
                     const parts = cleanToken.split('-');
                     if (parts.length === 2) {
-                        const startParts = parts[0].split('/');
-                        const endParts = parts[1].split('/');
+                        const startParts = parts[0].split('/'); const endParts = parts[1].split('/');
                         if (startParts.length >= 2 && endParts.length >= 2) {
                             const sd = parseInt(startParts[0]), sm = parseInt(startParts[1]) - 1;
                             const sy = startParts[2] ? parseYear(startParts[2]) : targetYear;
                             const ed = parseInt(endParts[0]), em = parseInt(endParts[1]) - 1;
                             const ey = endParts[2] ? parseYear(endParts[2]) : sy;
-                            
-                            skipRanges.push({ start: new Date(sy, sm, sd), end: new Date(ey, em, ed) });
-                            return;
+                            skipRanges.push({ start: new Date(sy, sm, sd), end: new Date(ey, em, ed) }); return;
                         }
                     }
                 }
-
                 const parts = cleanToken.split('/');
                 if (parts.length >= 2) {
-                    const d = parseInt(parts[0]);
-                    const m = parseInt(parts[1]) - 1;
-                    const y = parts[2] ? parseYear(parts[2]) : targetYear;
+                    const d = parseInt(parts[0]), m = parseInt(parts[1]) - 1, y = parts[2] ? parseYear(parts[2]) : targetYear;
                     const validDate = new Date(y, m, d);
-                    if (!isNaN(validDate.getTime())) {
-                        skipDates.push(`${y}-${m}-${d}`);
-                        return;
-                    }
+                    if (!isNaN(validDate.getTime())) { skipDates.push(`${y}-${m}-${d}`); return; }
                 }
-
                 if (cleanToken && !keywordList.includes(lowerToken) && !cleanToken.includes('/')) {
                     const normName = cleanToken.toLowerCase();
-                    if (!globalSkipNames.includes(normName)) {
-                        globalSkipNames.push(normName);
-                    }
+                    if (!globalSkipNames.includes(normName)) globalSkipNames.push(normName);
                 }
             });
-
             if (!contents.includes('/') && !contents.includes('-')) {
                 const lowerContents = contents.toLowerCase();
                 const hasKeyword = keywordList.some(k => lowerContents.includes(k));
                 if (!hasKeyword) {
                     const normName = contents.toLowerCase();
-                    if (!globalSkipNames.includes(normName)) {
-                        globalSkipNames.push(normName);
-                    }
+                    if (!globalSkipNames.includes(normName)) globalSkipNames.push(normName);
                 }
             }
         }
-        
         cleanedLine = cleanedLine.replace(/\(\s*skip\s*:?\s*([^)]+)\)/ig, '').trim();
         return { skipDates, skipRanges, skipDaysList, skipHolidays, skipExams, cleanedLine };
     }
@@ -650,12 +855,9 @@
     function parseLine(line, index) {
         line = normalizeDashes(line.trim());
         if (!line) return null;
-
         let startYEstimate = currentYear;
         const initialYearMatch = line.match(/\/(\d{2,4})/);
-        if (initialYearMatch) {
-            startYEstimate = parseYear(initialYearMatch[1]);
-        }
+        if (initialYearMatch) startYEstimate = parseYear(initialYearMatch[1]);
 
         let { skipDates, skipRanges, skipDaysList, skipHolidays, skipExams, cleanedLine } = parseSkipDirectives(line, startYEstimate);
 
@@ -663,119 +865,217 @@
         if (crossMatch) {
             let startD = parseInt(crossMatch[1]), startM = parseInt(crossMatch[2]) - 1;
             let endD = parseInt(crossMatch[4]), endM = parseInt(crossMatch[5]) - 1;
-            
-            let startY = parseYear(crossMatch[3]);
-            let endY = parseYear(crossMatch[6]);
-            
-            if (!crossMatch[3] && crossMatch[6]) {
-                startY = endY;
-            } else if (crossMatch[3] && !crossMatch[6]) {
-                endY = startY;
-            }
+            let startY = parseYear(crossMatch[3]); let endY = parseYear(crossMatch[6]);
+            if (!crossMatch[3] && crossMatch[6]) startY = endY;
+            else if (crossMatch[3] && !crossMatch[6]) endY = startY;
 
-            let rest = crossMatch[7].trim();
-            let dayFilter = [];
+            let rest = crossMatch[7].trim(); let dayFilter = [];
             const pMatch = rest.match(/\(([^)]+)\)$/);
             if (pMatch) {
                 dayFilter = parseDays(pMatch[1]);
-                if (dayFilter.length > 0) {
-                    rest = rest.replace(/\s*\([^)]+\)$/, '').trim();
-                }
+                if (dayFilter.length > 0) rest = rest.replace(/\s*\([^)]+\)$/, '').trim();
             }
-
-            const startDate = new Date(startY, startM, startD);
-            const endDate = new Date(endY, endM, endD);
-            let allDates = expandDateRange(startDate, endDate);
-            
-            if (dayFilter.length > 0) {
-                allDates = allDates.filter(d => dayFilter.includes(d.getDay()));
-            }
-
+            let allDates = expandDateRange(new Date(startY, startM, startD), new Date(endY, endM, endD));
+            if (dayFilter.length > 0) allDates = allDates.filter(d => dayFilter.includes(d.getDay()));
             allDates = allDates.filter(d => {
-                const checkStr = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-                if (skipDates.includes(checkStr)) return false;
-
-                for (let range of skipRanges) {
-                    if (d >= range.start && d <= range.end) return false;
-                }
-
-                const holidayKey = `${d.getMonth() + 1}-${d.getDate()}`;
-                if (skipHolidays && hkHolidays[holidayKey]) return false;
-
+                if (skipDates.includes(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`)) return false;
+                for (let r of skipRanges) { if (d >= r.start && d <= r.end) return false; }
+                if (skipHolidays && hkHolidays[`${d.getMonth() + 1}-${d.getDate()}`]) return false;
                 if (skipDaysList.includes(d.getDay())) return false;
-
                 return true;
             });
-
             return { dates: allDates, text: rest, originalText: crossMatch[7].trim(), originalIndex: index, skipExams };
         }
 
         const shortRangeMatch = cleanedLine.match(/^(\d{1,2})\s*-\s*(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s+([^]+)$/);
         if (shortRangeMatch) {
-            let startD = parseInt(shortRangeMatch[1]);
-            let endD = parseInt(shortRangeMatch[2]);
-            let month = parseInt(shortRangeMatch[3]) - 1;
-            let year = parseYear(shortRangeMatch[4]);
+            let startD = parseInt(shortRangeMatch[1]), endD = parseInt(shortRangeMatch[2]);
+            let month = parseInt(shortRangeMatch[3]) - 1, year = parseYear(shortRangeMatch[4]);
             let text = shortRangeMatch[5].trim();
-
             let allDates = expandDateRange(new Date(year, month, startD), new Date(year, month, endD));
-
             allDates = allDates.filter(d => {
-                const checkStr = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-                if (skipDates.includes(checkStr)) return false;
-
-                for (let range of skipRanges) {
-                    if (d >= range.start && d <= range.end) return false;
-                }
-
-                const holidayKey = `${d.getMonth() + 1}-${d.getDate()}`;
-                if (skipHolidays && hkHolidays[holidayKey]) return false;
-
+                if (skipDates.includes(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`)) return false;
+                for (let r of skipRanges) { if (d >= r.start && d <= r.end) return false; }
+                if (skipHolidays && hkHolidays[`${d.getMonth() + 1}-${d.getDate()}`]) return false;
                 if (skipDaysList.includes(d.getDay())) return false;
-
                 return true;
             });
-
             return { dates: allDates, text, originalText: shortRangeMatch[5].trim(), originalIndex: index, skipExams };
         }
 
         const singleDateMatch = cleanedLine.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s+([^]+)$/);
         if (singleDateMatch) {
-            let d = parseInt(singleDateMatch[1]);
-            let m = parseInt(singleDateMatch[2]) - 1;
-            let y = parseYear(singleDateMatch[3]);
+            let d = parseInt(singleDateMatch[1]), m = parseInt(singleDateMatch[2]) - 1, y = parseYear(singleDateMatch[3]);
             let text = singleDateMatch[4].trim();
-
             let allDates = [new Date(y, m, d)];
-
             allDates = allDates.filter(d => {
-                const checkStr = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-                if (skipDates.includes(checkStr)) return false;
-
-                for (let range of skipRanges) {
-                    if (d >= range.start && d <= range.end) return false;
-                }
-
-                const holidayKey = `${d.getMonth() + 1}-${d.getDate()}`;
-                if (skipHolidays && hkHolidays[holidayKey]) return false;
-
+                if (skipDates.includes(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`)) return false;
+                for (let r of skipRanges) { if (d >= r.start && d <= r.end) return false; }
+                if (skipHolidays && hkHolidays[`${d.getMonth() + 1}-${d.getDate()}`]) return false;
                 if (skipDaysList.includes(d.getDay())) return false;
-
                 return true;
             });
-
             return { dates: allDates, text, originalText: singleDateMatch[4].trim(), originalIndex: index, skipExams };
         }
-
         return null;
     }
 
-    function generateCalendar() {
+    function updateNavigationButtons() {
+        const prevBtn = document.getElementById("prevBtn");
+        const nextBtn = document.getElementById("nextBtn");
+        
+        if (currentSavedMonthsList.length <= 1 || currentMonthIndex === -1) {
+            prevBtn.disabled = true; nextBtn.disabled = true; return;
+        }
+        prevBtn.disabled = (currentMonthIndex <= 0);
+        nextBtn.disabled = (currentMonthIndex >= currentSavedMonthsList.length - 1);
+    }
+
+    function updateTitleDisplay() {
+        const display = document.getElementById("currentMonthView");
+        if (currentMonthIndex === -1 || !editingMonth) { display.textContent = "Editing: None"; return; }
+        const [year, monthStr] = editingMonth.split("-");
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        display.textContent = `Editing: ${monthNames[parseInt(monthStr) - 1]} ${year}`;
+    }
+
+    function autoSaveData(lines) {
+        const lineGroups = {};
+
+        lines.forEach((line, index) => {
+            const res = parseLine(line, index);
+            if (res && res.dates && res.dates.length > 0) {
+                const lineMonths = new Set();
+                res.dates.forEach(d => lineMonths.add(`${d.getFullYear()}-${d.getMonth() + 1}`));
+                lineMonths.forEach(key => {
+                    if (!lineGroups[key]) lineGroups[key] = [];
+                    lineGroups[key].push(line);
+                });
+            }
+        });
+
+        let savedData = {};
+        const keysSaved = Object.keys(lineGroups);
+        
+        if (keysSaved.length === 0) {
+            const today = new Date();
+            const fallbackKey = `${today.getFullYear()}-${today.getMonth() + 1}`;
+            savedData[fallbackKey] = lines.filter(l => l.trim() !== "");
+            currentSavedMonthsList = [fallbackKey];
+            currentMonthIndex = 0;
+            editingMonth = fallbackKey;
+        } else {
+            keysSaved.forEach(key => {
+                savedData[key] = lineGroups[key];
+            });
+            currentSavedMonthsList = Object.keys(savedData).sort((a, b) => {
+                const [yA, mA] = a.split('-').map(Number);
+                const [yB, mB] = b.split('-').map(Number);
+                return yA !== yB ? yA - yB : mA - mB;
+            });
+            currentMonthIndex = 0;
+            editingMonth = currentSavedMonthsList[0];
+        }
+
+        localStorage.setItem("monthly_calendar_saves", JSON.stringify(savedData));
+        updateTextareaWithCleanData();
+
+        updateTitleDisplay();
+        updateNavigationButtons();
+        
+        if (mode === "view") {
+            renderViewModeCalendar();
+        }
+
+        const feedback = document.getElementById("feedbackMsg");
+        feedback.classList.add("show");
+        setTimeout(() => feedback.classList.remove("show"), 2000);
+    }
+
+    function updateTextareaWithCleanData() {
+        const textarea = document.getElementById('eventInput');
+        const saved = localStorage.getItem("monthly_calendar_saves");
+        if (saved && editingMonth) {
+            try {
+                const data = JSON.parse(saved);
+                if (data[editingMonth]) {
+                    textarea.value = data[editingMonth].map(line => cleanDisplayString(line)).join('\n');
+                } else {
+                    textarea.value = "";
+                }
+            } catch(e) {
+                textarea.value = "";
+            }
+        } else {
+            textarea.value = "";
+        }
+    }
+
+    function navigateMonth(direction) {
+        if (currentSavedMonthsList.length === 0 || currentMonthIndex === -1) return;
+        const targetIndex = currentMonthIndex + direction;
+        
+        if (targetIndex >= 0 && targetIndex < currentSavedMonthsList.length) {
+            currentMonthIndex = targetIndex;
+            editingMonth = currentSavedMonthsList[currentMonthIndex];
+            
+            updateTextareaWithCleanData();
+            updateTitleDisplay();
+            updateNavigationButtons();
+            
+            if (mode === "view") {
+                renderViewModeCalendar();
+            }
+        }
+    }
+
+    function clearEditor() {
+        document.getElementById('eventInput').value = "";
+        editingMonth = "";
+        currentSavedMonthsList = [];
+        currentMonthIndex = -1;
+        updateTitleDisplay();
+        updateNavigationButtons();
+        localStorage.removeItem("monthly_calendar_saves");
+    }
+
+    function generateCalendarBtn() {
+        const textValue = document.getElementById('eventInput').value;
+        if (!textValue.trim()) return;
+        
+        const lines = textValue.split('\n');
+        
+        generateCalendar(lines);
+        autoSaveData(lines);
+    }
+
+    function generateCalendar(linesToParse) {
         resetEventColors();
         globalSkipNames = [];
         
-        const textarea = document.getElementById('eventInput');
-        const lines = textarea.value.split('\n');
+        let lines = linesToParse;
+        if (!lines) {
+            const saved = localStorage.getItem("monthly_calendar_saves");
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    const allLines = [];
+                    Object.keys(data).forEach(k => {
+                        if (Array.isArray(data[k])) {
+                            allLines.push(...data[k]);
+                        }
+                    });
+                    lines = Array.from(new Set(allLines));
+                } catch(e) {
+                    lines = [];
+                }
+            } else {
+                lines = [];
+            }
+        }
+
+        if (lines.length === 0) return;
+
         const intermediateEvents = [];
 
         lines.forEach((line, index) => {
@@ -790,7 +1090,7 @@
                         month: date.getMonth(),
                         day: date.getDate(),
                         text: res.text,
-                        displayText: res.originalText,
+                        displayText: cleanDisplayString(res.originalText),
                         time: calculatedTime,
                         originalIndex: res.originalIndex,
                         skipExams: res.skipExams
@@ -800,23 +1100,12 @@
         });
 
         const parsedEvents = intermediateEvents.filter(e => {
-            const normTitle = e.text.toLowerCase();
-            
-            if (e.skipExams && normTitle.includes('exam')) {
-                return false;
-            }
-
-            for (let skipName of globalSkipNames) {
-                if (normTitle.includes(skipName)) {
-                    return false;
-                }
-            }
+            if (e.skipExams && e.text.toLowerCase().includes('exam')) return false;
+            for (let skipName of globalSkipNames) { if (e.text.toLowerCase().includes(skipName)) return false; }
             return true;
         });
 
-        parsedEvents.forEach(e => {
-            stringToColor(e.text);
-        });
+        parsedEvents.forEach(e => stringToColor(e.text));
 
         const monthsData = {};
         parsedEvents.forEach(e => {
@@ -825,7 +1114,8 @@
             monthsData[key].push(e);
         });
 
-        if (Object.keys(monthsData).length === 0) {
+        const renderedKeys = Object.keys(monthsData);
+        if (renderedKeys.length === 0) {
             const today = new Date();
             monthsData[`${today.getFullYear()}-${today.getMonth()}`] = [];
         }
@@ -834,7 +1124,7 @@
     }
 
     function renderCalendars(monthsData) {
-        const output = document.getElementById('calendarOutput');
+        const output = document.getElementById('fullCalendar');
         output.innerHTML = '';
 
         const sortedMonths = Object.keys(monthsData).sort((a, b) => {
@@ -845,6 +1135,7 @@
 
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const realToday = new Date();
 
         sortedMonths.forEach(monthKey => {
             const [year, month] = monthKey.split('-').map(Number);
@@ -860,12 +1151,13 @@
 
             const legendMap = new Map();
             monthEvents.forEach(e => {
-                if (!legendMap.has(e.text)) {
-                    legendMap.set(e.text, { time: e.time, index: e.originalIndex });
+                const cleanName = cleanDisplayString(e.text);
+                if (!legendMap.has(cleanName)) {
+                    legendMap.set(cleanName, { time: e.time, index: e.originalIndex });
                 } else {
-                    const current = legendMap.get(e.text);
+                    const current = legendMap.get(cleanName);
                     if (e.time !== null && (current.time === null || e.time < current.time)) {
-                        legendMap.set(e.text, { time: e.time, index: e.originalIndex });
+                        legendMap.set(cleanName, { time: e.time, index: e.originalIndex });
                     }
                 }
             });
@@ -873,7 +1165,6 @@
             if (legendMap.size > 0) {
                 const legendDiv = document.createElement('div');
                 legendDiv.className = 'month-legend';
-                
                 const legendTitle = document.createElement('div');
                 legendTitle.className = 'month-legend-title';
                 legendTitle.textContent = "Events in this Month";
@@ -884,24 +1175,19 @@
 
                 Array.from(legendMap.entries())
                     .sort((a, b) => {
-                        const timeA = a[1].time;
-                        const timeB = b[1].time;
-                        if (timeA !== null && timeB !== null) return timeA - timeB;
-                        if (timeA !== null && timeB === null) return -1;
-                        if (timeA === null && timeB !== null) return 1;
+                        if (a[1].time !== null && b[1].time !== null) return a[1].time - b[1].time;
+                        if (a[1].time !== null) return -1;
+                        if (b[1].time !== null) return 1;
                         return a[1].index - b[1].index;
                     })
                     .forEach(([name]) => {
                         const item = document.createElement('div');
                         item.className = 'legend-item';
-                        
                         const colorBox = document.createElement('div');
                         colorBox.className = 'legend-color';
                         colorBox.style.backgroundColor = stringToColor(name);
-                        
                         const text = document.createElement('span');
                         text.textContent = name;
-                        
                         item.appendChild(colorBox);
                         item.appendChild(text);
                         legendContainer.appendChild(item);
@@ -928,57 +1214,47 @@
             for (let i = firstDayIndex - 1; i >= 0; i--) {
                 const cell = document.createElement('div');
                 cell.className = 'day-cell other-month';
-                cell.innerHTML = `
-                    <div class="day-header-container">
-                        <div class="day-number">${prevMonthTotalDays - i}</div>
-                    </div>
-                `;
+                cell.innerHTML = `<div class="day-header-container"><div class="day-number">${prevMonthTotalDays - i}</div></div>`;
                 grid.appendChild(cell);
             }
 
             for (let day = 1; day <= totalDays; day++) {
                 const cell = document.createElement('div');
                 cell.className = 'day-cell';
-                
-                const currentDayOfWeek = new Date(year, month, day).getDay();
-                if (currentDayOfWeek === 0) cell.classList.add('sunday');
+                if (new Date(year, month, day).getDay() === 0) cell.classList.add('sunday');
 
                 const holidayKey = `${month + 1}-${day}`;
                 if (hkHolidays[holidayKey]) cell.classList.add('holiday');
+                
+                if (realToday.getFullYear() === year && realToday.getMonth() === month && realToday.getDate() === day) {
+                    cell.classList.add('is-today');
+                }
 
                 const dateStr = `${year}-${month}-${day}`;
-                
                 const dailyEvents = monthEvents
                     .filter(e => e.dateString === dateStr)
                     .sort((a, b) => {
                         if (a.time !== null && b.time !== null) return a.time - b.time;
-                        if (a.time !== null && b.time === null) return -1;
-                        if (a.time === null && b.time !== null) return 1;
+                        if (a.time !== null) return -1;
+                        if (b.time !== null) return 1;
                         return a.originalIndex - b.originalIndex;
                     });
 
-                let headerHTML = `<div class="day-header-container">`;
-                headerHTML += `<div class="day-number">${day}</div>`;
-                if (hkHolidays[holidayKey]) {
-                    headerHTML += `<div class="holiday-label" title="${hkHolidays[holidayKey]}">★ ${hkHolidays[holidayKey]}</div>`;
-                }
+                let headerHTML = `<div class="day-header-container"><div class="day-number">${day}</div>`;
+                if (hkHolidays[holidayKey]) headerHTML += `<div class="holiday-label" title="${hkHolidays[holidayKey]}">★ ${hkHolidays[holidayKey]}</div>`;
                 headerHTML += `</div>`;
 
                 const dayEventsContainer = document.createElement('div');
                 dayEventsContainer.className = 'events-container';
-                
-                if (dailyEvents.length > 6) {
-                    dayEventsContainer.classList.add('split-3');
-                } else if (dailyEvents.length > 3) {
-                    dayEventsContainer.classList.add('split-2');
-                }
+                if (dailyEvents.length > 6) dayEventsContainer.classList.add('split-3');
+                else if (dailyEvents.length > 3) dayEventsContainer.classList.add('split-2');
                 
                 dailyEvents.forEach(e => {
                     const evDiv = document.createElement('div');
                     evDiv.className = 'event-item';
                     evDiv.style.backgroundColor = stringToColor(e.text);
                     evDiv.textContent = e.displayText;
-                    evDiv.title = e.displayText; 
+                    evDiv.title = e.displayText;
                     dayEventsContainer.appendChild(evDiv);
                 });
 
@@ -992,25 +1268,249 @@
             for (let i = 1; i <= remainingCells; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'day-cell other-month';
-                cell.innerHTML = `
-                    <div class="day-header-container">
-                        <div class="day-number">${i}</div>
-                    </div>
-                `;
+                cell.innerHTML = `<div class="day-header-container"><div class="day-number">${i}</div></div>`;
                 grid.appendChild(cell);
             }
 
+            grid.style.gridTemplateRows = `auto repeat(${Math.ceil(totalRendered / 7)}, minmax(0, 1fr))`;
             monthDiv.appendChild(grid);
             output.appendChild(monthDiv);
         });
     }
 
-    function exportPDF() {
-        window.print();
+    function enterViewMode() {
+        mode = "view";
+        document.body.classList.add('view-mode-active');
+        document.getElementById('fullCalendar').style.display = 'none';
+        
+        if (currentSavedMonthsList.length > 0) {
+            if (currentMonthIndex === -1 || !editingMonth) {
+                currentMonthIndex = 0;
+                editingMonth = currentSavedMonthsList[0];
+            }
+        } else {
+            const d = new Date();
+            editingMonth = `${d.getFullYear()}-${d.getMonth() + 1}`;
+            currentSavedMonthsList = [editingMonth];
+            currentMonthIndex = 0;
+        }
+        updateTitleDisplay();
+        updateNavigationButtons();
+        renderViewModeCalendar();
+    }
+
+    function exitViewMode() {
+        mode = "edit";
+        document.body.classList.remove('view-mode-active');
+        document.getElementById('fullCalendar').style.display = 'flex';
+        
+        if (currentSavedMonthsList.length > 0) {
+            if (currentMonthIndex === -1 || !editingMonth) {
+                currentMonthIndex = 0;
+                editingMonth = currentSavedMonthsList[0];
+            }
+            updateTextareaWithCleanData();
+        }
+        updateTitleDisplay();
+        updateNavigationButtons();
+    }
+
+    function navigateViewMonth(direction) {
+        if (currentSavedMonthsList.length === 0) return;
+        const targetIdx = currentMonthIndex + direction;
+        if (targetIdx >= 0 && targetIdx < currentSavedMonthsList.length) {
+            currentMonthIndex = targetIdx;
+            editingMonth = currentSavedMonthsList[currentMonthIndex];
+            
+            updateTextareaWithCleanData();
+            updateTitleDisplay();
+            updateNavigationButtons();
+            renderViewModeCalendar();
+        }
+    }
+
+    function renderViewModeCalendar() {
+        document.getElementById('viewPrevArrow').disabled = (currentMonthIndex <= 0);
+        document.getElementById('viewNextArrow').disabled = (currentMonthIndex === -1 || currentMonthIndex >= currentSavedMonthsList.length - 1);
+
+        if (!editingMonth) return;
+        const [year, monthStr] = editingMonth.split('-').map(Number);
+        const monthIndex = monthStr - 1;
+
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById('viewModeHeaderTitle').textContent = `${monthNames[monthIndex]} ${year}`;
+
+        let monthRawInput = "";
+        const saved = localStorage.getItem("monthly_calendar_saves");
+        if (saved) {
+            try { monthRawInput = JSON.parse(saved)[editingMonth] ? JSON.parse(saved)[editingMonth].join('\n') : ""; } catch(e) {}
+        }
+
+        resetEventColors();
+        globalSkipNames = [];
+        const lines = monthRawInput.split('\n');
+        const intermediateEvents = [];
+
+        lines.forEach((line, index) => {
+            const res = parseLine(line, index);
+            if (res) {
+                const calculatedTime = parseTime(res.originalText);
+                res.dates.forEach(date => {
+                    intermediateEvents.push({
+                        date,
+                        dateString: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
+                        year: date.getFullYear(),
+                        month: date.getMonth(),
+                        day: date.getDate(),
+                        text: res.text,
+                        displayText: cleanDisplayString(res.originalText),
+                        time: calculatedTime,
+                        originalIndex: res.originalIndex,
+                        skipExams: res.skipExams
+                    });
+                });
+            }
+        });
+
+        const parsedEvents = intermediateEvents.filter(e => {
+            if (e.skipExams && e.text.toLowerCase().includes('exam')) return false;
+            for (let skipName of globalSkipNames) { if (e.text.toLowerCase().includes(skipName)) return false; }
+            return true;
+        }).sort((a, b) => {
+            if (a.time !== null && b.time !== null) return a.time - b.time;
+            if (a.time !== null) return -1;
+            if (b.time !== null) return 1;
+            return a.originalIndex - b.originalIndex;
+        });
+
+        parsedEvents.forEach(e => stringToColor(e.text));
+
+        const gridContainer = document.getElementById('viewModeCalendarGrid');
+        gridContainer.innerHTML = '';
+
+        const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        weekdays.forEach(day => {
+            const header = document.createElement('div');
+            header.className = 'weekday-header';
+            header.style.background = '#ffffff';
+            header.style.borderTop = 'none';
+            header.textContent = day;
+            gridContainer.appendChild(header);
+        });
+
+        const firstDayIndex = new Date(year, monthIndex, 1).getDay();
+        const totalDays = new Date(year, monthIndex + 1, 0).getDate();
+        const prevMonthTotalDays = new Date(year, monthIndex, 0).getDate();
+        const realToday = new Date();
+
+        for (let i = firstDayIndex - 1; i >= 0; i--) {
+            const cell = document.createElement('div');
+            cell.className = 'view-mode-cell other-month';
+            cell.innerHTML = `<div class="view-mode-day-header"><span class="view-mode-day-num">${prevMonthTotalDays - i}</span></div>`;
+            gridContainer.appendChild(cell);
+        }
+
+        for (let day = 1; day <= totalDays; day++) {
+            const cell = document.createElement('div');
+            cell.className = 'view-mode-cell';
+            const dayOfWeek = new Date(year, monthIndex, day).getDay();
+            if (dayOfWeek === 0) cell.classList.add('sunday');
+
+            const holidayKey = `${monthIndex + 1}-${day}`;
+            if (hkHolidays[holidayKey]) cell.classList.add('holiday');
+            
+            if (realToday.getFullYear() === year && realToday.getMonth() === monthIndex && realToday.getDate() === day) {
+                cell.classList.add('is-today');
+            }
+
+            const currentDayEvents = parsedEvents.filter(e => e.dateString === `${year}-${monthIndex}-${day}`);
+
+            let headerHTML = `<div class="view-mode-day-header"><span class="view-mode-day-num">${day}</span>`;
+            if (hkHolidays[holidayKey]) headerHTML += `<span class="holiday-label" style="font-size:9px;">${hkHolidays[holidayKey]}</span>`;
+            headerHTML += `</div>`;
+            cell.innerHTML = headerHTML;
+
+            const eventsContainer = document.createElement('div');
+            eventsContainer.className = 'view-mode-events';
+
+            const maxVisibleEvents = 3; 
+            currentDayEvents.forEach((ev, idx) => {
+                if (idx < maxVisibleEvents) {
+                    const tag = document.createElement('div');
+                    tag.className = 'view-tag';
+                    tag.style.backgroundColor = stringToColor(ev.text);
+                    tag.textContent = extractCleanTitleAndTime(ev.displayText);
+                    eventsContainer.appendChild(tag);
+                }
+            });
+
+            if (currentDayEvents.length > maxVisibleEvents) {
+                const moreLabel = document.createElement('div');
+                moreLabel.className = 'more-indicator';
+                moreLabel.textContent = `+${currentDayEvents.length - maxVisibleEvents} more`;
+                eventsContainer.appendChild(moreLabel);
+            }
+
+            cell.appendChild(eventsContainer);
+            gridContainer.appendChild(cell);
+        }
+
+        const totalRendered = firstDayIndex + totalDays;
+        const remainingCells = totalRendered % 7 === 0 ? 0 : 7 - (totalRendered % 7);
+        for (let i = 1; i <= remainingCells; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'view-mode-cell other-month';
+            cell.innerHTML = `<div class="view-mode-day-header"><span class="view-mode-day-num">${i}</span></div>`;
+            gridContainer.appendChild(cell);
+        }
+    }
+
+    function exportPDF() { 
+        if (mode === "view") {
+            const currentMode = mode;
+            document.body.classList.remove('view-mode-active');
+            document.getElementById('fullCalendar').style.display = 'flex';
+            
+            const origMode = mode;
+            mode = "edit";
+            generateCalendar(null);
+            mode = origMode;
+
+            setTimeout(() => {
+                window.print();
+                if (currentMode === "view") {
+                    document.body.classList.add('view-mode-active');
+                    document.getElementById('fullCalendar').style.display = 'none';
+                }
+            }, 50);
+        } else {
+            generateCalendar(null);
+            setTimeout(() => {
+                window.print();
+            }, 50);
+        }
     }
 
     window.onload = function() {
-        generateCalendar();
+        const saved = localStorage.getItem("monthly_calendar_saves");
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                currentSavedMonthsList = Object.keys(data).sort((a, b) => {
+                    const [yA, mA] = a.split('-').map(Number);
+                    const [yB, mB] = b.split('-').map(Number);
+                    return yA !== yB ? yA - yB : mA - mB;
+                });
+                if (currentSavedMonthsList.length > 0) {
+                    currentMonthIndex = 0;
+                    editingMonth = currentSavedMonthsList[0];
+                }
+            } catch(e) {}
+        }
+        updateTitleDisplay();
+        updateNavigationButtons();
+        updateTextareaWithCleanData();
+        generateCalendar(null);
     };
 </script>
 </body>
