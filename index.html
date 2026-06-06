@@ -101,7 +101,7 @@
 
         textarea {
             width: 100%;
-            height: 200px;
+            height: 250px;
             padding: 14px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
@@ -631,8 +631,8 @@
 
     <div class="editor-section">
         <div class="status-panel">
-            <span id="currentMonthView">Editing: None</span>
-            <span id="feedbackMsg" class="feedback-msg">Calendar generated and saved</span>
+            <span id="currentMonthView">Editing: All Months</span>
+            <span id="feedbackMsg" class="feedback-msg">Calendar updated</span>
         </div>
 
         <label for="eventInput">Enter Events (one per line):</label>
@@ -673,9 +673,9 @@
 <script>
     const currentYear = 2026;
     let mode = "edit"; 
-    let editingMonth = ""; 
     let currentSavedMonthsList = [];
     let currentMonthIndex = -1;
+    let groupedRawData = {};
 
     const hkHolidays = {
         "1-1": "New Year", "4-4": "Ching Ming", "5-1": "Labour Day",
@@ -712,8 +712,8 @@
 
     function normalizeDashes(str) { return str.replace(/[–—]/g, '-'); }
 
-    function cleanDisplayString(str) {
-        return str.replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
+    function getDisplayText(rawText) {
+        return rawText.replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
     }
 
     function parseDays(dayStr) {
@@ -785,7 +785,7 @@
     }
 
     function extractCleanTitleAndTime(displayText) {
-        let clean = cleanDisplayString(displayText);
+        let clean = displayText;
         const timeRegex = /((?:1[0-2]|0?[1-9]):[0-5][0-9]\s*(?:am|pm)?\b)|(\b(?:[0-1][0-9]|2[0-3]|[1-9])[0-5][0-9]\s*(?:am|pm)?\b)|(\b(?:[0-1][0-9]|2[0-3]|[1-9])\s*(?:am|pm)\b)/i;
         let timeString = "";
         const match = clean.match(timeRegex);
@@ -853,13 +853,13 @@
     }
 
     function parseLine(line, index) {
-        line = normalizeDashes(line.trim());
-        if (!line) return null;
+        const rawTextCleaned = normalizeDashes(line.trim());
+        if (!rawTextCleaned) return null;
         let startYEstimate = currentYear;
-        const initialYearMatch = line.match(/\/(\d{2,4})/);
+        const initialYearMatch = rawTextCleaned.match(/\/(\d{2,4})/);
         if (initialYearMatch) startYEstimate = parseYear(initialYearMatch[1]);
 
-        let { skipDates, skipRanges, skipDaysList, skipHolidays, skipExams, cleanedLine } = parseSkipDirectives(line, startYEstimate);
+        let { skipDates, skipRanges, skipDaysList, skipHolidays, skipExams, cleanedLine } = parseSkipDirectives(rawTextCleaned, startYEstimate);
 
         const crossMatch = cleanedLine.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s*-\s*(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s+([^]+)$/);
         if (crossMatch) {
@@ -884,14 +884,14 @@
                 if (skipDaysList.includes(d.getDay())) return false;
                 return true;
             });
-            return { dates: allDates, text: rest, originalText: crossMatch[7].trim(), originalIndex: index, skipExams };
+            return { dates: allDates, rawText: crossMatch[7].trim(), originalIndex: index, skipExams };
         }
 
         const shortRangeMatch = cleanedLine.match(/^(\d{1,2})\s*-\s*(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s+([^]+)$/);
         if (shortRangeMatch) {
             let startD = parseInt(shortRangeMatch[1]), endD = parseInt(shortRangeMatch[2]);
             let month = parseInt(shortRangeMatch[3]) - 1, year = parseYear(shortRangeMatch[4]);
-            let text = shortRangeMatch[5].trim();
+            let rawText = shortRangeMatch[5].trim();
             let allDates = expandDateRange(new Date(year, month, startD), new Date(year, month, endD));
             allDates = allDates.filter(d => {
                 if (skipDates.includes(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`)) return false;
@@ -900,13 +900,13 @@
                 if (skipDaysList.includes(d.getDay())) return false;
                 return true;
             });
-            return { dates: allDates, text, originalText: shortRangeMatch[5].trim(), originalIndex: index, skipExams };
+            return { dates: allDates, rawText, originalIndex: index, skipExams };
         }
 
         const singleDateMatch = cleanedLine.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s+([^]+)$/);
         if (singleDateMatch) {
             let d = parseInt(singleDateMatch[1]), m = parseInt(singleDateMatch[2]) - 1, y = parseYear(singleDateMatch[3]);
-            let text = singleDateMatch[4].trim();
+            let rawText = singleDateMatch[4].trim();
             let allDates = [new Date(y, m, d)];
             allDates = allDates.filter(d => {
                 if (skipDates.includes(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`)) return false;
@@ -915,7 +915,7 @@
                 if (skipDaysList.includes(d.getDay())) return false;
                 return true;
             });
-            return { dates: allDates, text, originalText: singleDateMatch[4].trim(), originalIndex: index, skipExams };
+            return { dates: allDates, rawText, originalIndex: index, skipExams };
         }
         return null;
     }
@@ -933,82 +933,56 @@
 
     function updateTitleDisplay() {
         const display = document.getElementById("currentMonthView");
-        if (currentMonthIndex === -1 || !editingMonth) { display.textContent = "Editing: None"; return; }
-        const [year, monthStr] = editingMonth.split("-");
+        if (currentMonthIndex === -1 || currentSavedMonthsList.length === 0) { display.textContent = "Viewing: All Months"; return; }
+        const [year, monthStr] = currentSavedMonthsList[currentMonthIndex].split("-");
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        display.textContent = `Editing: ${monthNames[parseInt(monthStr) - 1]} ${year}`;
+        display.textContent = `Viewing: ${monthNames[parseInt(monthStr) - 1]} ${year}`;
     }
 
-    function autoSaveData(lines) {
-        const lineGroups = {};
+    function updateTextareaForCurrentMonth() {
+        const textInput = document.getElementById('eventInput');
+        if (currentMonthIndex === -1 || currentSavedMonthsList.length === 0) {
+            textInput.value = "";
+            return;
+        }
+        const key = currentSavedMonthsList[currentMonthIndex];
+        const lines = groupedRawData[key] || [];
+        textInput.value = lines.join('\n');
+    }
 
+    function processAndCacheMonths(lines) {
+        groupedRawData = {};
+        
         lines.forEach((line, index) => {
+            if (!line.trim()) return;
             const res = parseLine(line, index);
             if (res && res.dates && res.dates.length > 0) {
                 const lineMonths = new Set();
                 res.dates.forEach(d => lineMonths.add(`${d.getFullYear()}-${d.getMonth() + 1}`));
                 lineMonths.forEach(key => {
-                    if (!lineGroups[key]) lineGroups[key] = [];
-                    lineGroups[key].push(line);
+                    if (!groupedRawData[key]) groupedRawData[key] = [];
+                    if (!groupedRawData[key].includes(line)) {
+                        groupedRawData[key].push(line);
+                    }
                 });
             }
         });
 
-        let savedData = {};
-        const keysSaved = Object.keys(lineGroups);
-        
-        if (keysSaved.length === 0) {
-            const today = new Date();
-            const fallbackKey = `${today.getFullYear()}-${today.getMonth() + 1}`;
-            savedData[fallbackKey] = lines.filter(l => l.trim() !== "");
-            currentSavedMonthsList = [fallbackKey];
-            currentMonthIndex = 0;
-            editingMonth = fallbackKey;
-        } else {
-            keysSaved.forEach(key => {
-                savedData[key] = lineGroups[key];
-            });
-            currentSavedMonthsList = Object.keys(savedData).sort((a, b) => {
+        const keysSaved = Object.keys(groupedRawData);
+        if (keysSaved.length > 0) {
+            currentSavedMonthsList = keysSaved.sort((a, b) => {
                 const [yA, mA] = a.split('-').map(Number);
                 const [yB, mB] = b.split('-').map(Number);
                 return yA !== yB ? yA - yB : mA - mB;
             });
             currentMonthIndex = 0;
-            editingMonth = currentSavedMonthsList[0];
+        } else {
+            currentSavedMonthsList = [];
+            currentMonthIndex = -1;
         }
-
-        localStorage.setItem("monthly_calendar_saves", JSON.stringify(savedData));
-        updateTextareaWithCleanData();
 
         updateTitleDisplay();
         updateNavigationButtons();
-        
-        if (mode === "view") {
-            renderViewModeCalendar();
-        }
-
-        const feedback = document.getElementById("feedbackMsg");
-        feedback.classList.add("show");
-        setTimeout(() => feedback.classList.remove("show"), 2000);
-    }
-
-    function updateTextareaWithCleanData() {
-        const textarea = document.getElementById('eventInput');
-        const saved = localStorage.getItem("monthly_calendar_saves");
-        if (saved && editingMonth) {
-            try {
-                const data = JSON.parse(saved);
-                if (data[editingMonth]) {
-                    textarea.value = data[editingMonth].map(line => cleanDisplayString(line)).join('\n');
-                } else {
-                    textarea.value = "";
-                }
-            } catch(e) {
-                textarea.value = "";
-            }
-        } else {
-            textarea.value = "";
-        }
     }
 
     function navigateMonth(direction) {
@@ -1017,12 +991,10 @@
         
         if (targetIndex >= 0 && targetIndex < currentSavedMonthsList.length) {
             currentMonthIndex = targetIndex;
-            editingMonth = currentSavedMonthsList[currentMonthIndex];
-            
-            updateTextareaWithCleanData();
             updateTitleDisplay();
             updateNavigationButtons();
-            
+            updateTextareaForCurrentMonth();
+
             if (mode === "view") {
                 renderViewModeCalendar();
             }
@@ -1031,57 +1003,45 @@
 
     function clearEditor() {
         document.getElementById('eventInput').value = "";
-        editingMonth = "";
         currentSavedMonthsList = [];
         currentMonthIndex = -1;
+        groupedRawData = {};
         updateTitleDisplay();
         updateNavigationButtons();
-        localStorage.removeItem("monthly_calendar_saves");
+        document.getElementById('fullCalendar').innerHTML = '';
+        localStorage.removeItem("monthly_calendar_raw_input");
     }
 
     function generateCalendarBtn() {
         const textValue = document.getElementById('eventInput').value;
-        if (!textValue.trim()) return;
+        localStorage.setItem("monthly_calendar_raw_input", textValue);
         
         const lines = textValue.split('\n');
+        processAndCacheMonths(lines);
         
-        generateCalendar(lines);
-        autoSaveData(lines);
+        renderCalculatedView(lines);
+        updateTextareaForCurrentMonth();
+
+        const feedback = document.getElementById("feedbackMsg");
+        feedback.classList.add("show");
+        setTimeout(() => feedback.classList.remove("show"), 2000);
     }
 
-    function generateCalendar(linesToParse) {
+    function renderCalculatedView(allLines) {
         resetEventColors();
         globalSkipNames = [];
         
-        let lines = linesToParse;
-        if (!lines) {
-            const saved = localStorage.getItem("monthly_calendar_saves");
-            if (saved) {
-                try {
-                    const data = JSON.parse(saved);
-                    const allLines = [];
-                    Object.keys(data).forEach(k => {
-                        if (Array.isArray(data[k])) {
-                            allLines.push(...data[k]);
-                        }
-                    });
-                    lines = Array.from(new Set(allLines));
-                } catch(e) {
-                    lines = [];
-                }
-            } else {
-                lines = [];
-            }
+        if (!allLines || allLines.length === 0) {
+            document.getElementById('fullCalendar').innerHTML = '';
+            return;
         }
-
-        if (lines.length === 0) return;
 
         const intermediateEvents = [];
 
-        lines.forEach((line, index) => {
+        allLines.forEach((line, index) => {
             const res = parseLine(line, index);
             if (res) {
-                const calculatedTime = parseTime(res.originalText);
+                const calculatedTime = parseTime(res.rawText);
                 res.dates.forEach(date => {
                     intermediateEvents.push({
                         date,
@@ -1089,8 +1049,8 @@
                         year: date.getFullYear(),
                         month: date.getMonth(),
                         day: date.getDate(),
-                        text: res.text,
-                        displayText: cleanDisplayString(res.originalText),
+                        rawText: line, 
+                        displayText: getDisplayText(res.rawText),
                         time: calculatedTime,
                         originalIndex: res.originalIndex,
                         skipExams: res.skipExams
@@ -1100,22 +1060,21 @@
         });
 
         const parsedEvents = intermediateEvents.filter(e => {
-            if (e.skipExams && e.text.toLowerCase().includes('exam')) return false;
-            for (let skipName of globalSkipNames) { if (e.text.toLowerCase().includes(skipName)) return false; }
+            if (e.skipExams && e.rawText.toLowerCase().includes('exam')) return false;
+            for (let skipName of globalSkipNames) { if (e.rawText.toLowerCase().includes(skipName)) return false; }
             return true;
         });
 
-        parsedEvents.forEach(e => stringToColor(e.text));
+        parsedEvents.forEach(e => stringToColor(e.displayText));
 
         const monthsData = {};
         parsedEvents.forEach(e => {
-            const key = `${e.year}-${e.month}`;
-            if (!monthsData[key]) monthsData[key] = [];
-            monthsData[key].push(e);
+            const dataKey = `${e.year}-${e.month}`; 
+            if (!monthsData[dataKey]) monthsData[dataKey] = [];
+            monthsData[dataKey].push(e);
         });
 
-        const renderedKeys = Object.keys(monthsData);
-        if (renderedKeys.length === 0) {
+        if (Object.keys(monthsData).length === 0) {
             const today = new Date();
             monthsData[`${today.getFullYear()}-${today.getMonth()}`] = [];
         }
@@ -1151,13 +1110,12 @@
 
             const legendMap = new Map();
             monthEvents.forEach(e => {
-                const cleanName = cleanDisplayString(e.text);
-                if (!legendMap.has(cleanName)) {
-                    legendMap.set(cleanName, { time: e.time, index: e.originalIndex });
+                if (!legendMap.has(e.displayText)) {
+                    legendMap.set(e.displayText, { time: e.time, index: e.originalIndex });
                 } else {
-                    const current = legendMap.get(cleanName);
+                    const current = legendMap.get(e.displayText);
                     if (e.time !== null && (current.time === null || e.time < current.time)) {
-                        legendMap.set(cleanName, { time: e.time, index: e.originalIndex });
+                        legendMap.set(e.displayText, { time: e.time, index: e.originalIndex });
                     }
                 }
             });
@@ -1252,7 +1210,7 @@
                 dailyEvents.forEach(e => {
                     const evDiv = document.createElement('div');
                     evDiv.className = 'event-item';
-                    evDiv.style.backgroundColor = stringToColor(e.text);
+                    evDiv.style.backgroundColor = stringToColor(e.displayText);
                     evDiv.textContent = e.displayText;
                     evDiv.title = e.displayText;
                     dayEventsContainer.appendChild(evDiv);
@@ -1283,15 +1241,9 @@
         document.body.classList.add('view-mode-active');
         document.getElementById('fullCalendar').style.display = 'none';
         
-        if (currentSavedMonthsList.length > 0) {
-            if (currentMonthIndex === -1 || !editingMonth) {
-                currentMonthIndex = 0;
-                editingMonth = currentSavedMonthsList[0];
-            }
-        } else {
+        if (currentSavedMonthsList.length === 0) {
             const d = new Date();
-            editingMonth = `${d.getFullYear()}-${d.getMonth() + 1}`;
-            currentSavedMonthsList = [editingMonth];
+            currentSavedMonthsList = [`${d.getFullYear()}-${d.getMonth() + 1}`];
             currentMonthIndex = 0;
         }
         updateTitleDisplay();
@@ -1304,13 +1256,6 @@
         document.body.classList.remove('view-mode-active');
         document.getElementById('fullCalendar').style.display = 'flex';
         
-        if (currentSavedMonthsList.length > 0) {
-            if (currentMonthIndex === -1 || !editingMonth) {
-                currentMonthIndex = 0;
-                editingMonth = currentSavedMonthsList[0];
-            }
-            updateTextareaWithCleanData();
-        }
         updateTitleDisplay();
         updateNavigationButtons();
     }
@@ -1320,11 +1265,9 @@
         const targetIdx = currentMonthIndex + direction;
         if (targetIdx >= 0 && targetIdx < currentSavedMonthsList.length) {
             currentMonthIndex = targetIdx;
-            editingMonth = currentSavedMonthsList[currentMonthIndex];
-            
-            updateTextareaWithCleanData();
             updateTitleDisplay();
             updateNavigationButtons();
+            updateTextareaForCurrentMonth();
             renderViewModeCalendar();
         }
     }
@@ -1333,28 +1276,25 @@
         document.getElementById('viewPrevArrow').disabled = (currentMonthIndex <= 0);
         document.getElementById('viewNextArrow').disabled = (currentMonthIndex === -1 || currentMonthIndex >= currentSavedMonthsList.length - 1);
 
-        if (!editingMonth) return;
-        const [year, monthStr] = editingMonth.split('-').map(Number);
+        if (currentMonthIndex === -1 || currentSavedMonthsList.length === 0) return;
+        const targetMonthKey = currentSavedMonthsList[currentMonthIndex];
+        const [year, monthStr] = targetMonthKey.split('-').map(Number);
         const monthIndex = monthStr - 1;
 
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         document.getElementById('viewModeHeaderTitle').textContent = `${monthNames[monthIndex]} ${year}`;
 
-        let monthRawInput = "";
-        const saved = localStorage.getItem("monthly_calendar_saves");
-        if (saved) {
-            try { monthRawInput = JSON.parse(saved)[editingMonth] ? JSON.parse(saved)[editingMonth].join('\n') : ""; } catch(e) {}
-        }
+        const savedRawInput = localStorage.getItem("monthly_calendar_raw_input") || "";
+        const lines = savedRawInput.split('\n');
 
         resetEventColors();
         globalSkipNames = [];
-        const lines = monthRawInput.split('\n');
         const intermediateEvents = [];
 
         lines.forEach((line, index) => {
             const res = parseLine(line, index);
             if (res) {
-                const calculatedTime = parseTime(res.originalText);
+                const calculatedTime = parseTime(res.rawText);
                 res.dates.forEach(date => {
                     intermediateEvents.push({
                         date,
@@ -1362,8 +1302,8 @@
                         year: date.getFullYear(),
                         month: date.getMonth(),
                         day: date.getDate(),
-                        text: res.text,
-                        displayText: cleanDisplayString(res.originalText),
+                        rawText: line,
+                        displayText: getDisplayText(res.rawText),
                         time: calculatedTime,
                         originalIndex: res.originalIndex,
                         skipExams: res.skipExams
@@ -1373,8 +1313,8 @@
         });
 
         const parsedEvents = intermediateEvents.filter(e => {
-            if (e.skipExams && e.text.toLowerCase().includes('exam')) return false;
-            for (let skipName of globalSkipNames) { if (e.text.toLowerCase().includes(skipName)) return false; }
+            if (e.skipExams && e.rawText.toLowerCase().includes('exam')) return false;
+            for (let skipName of globalSkipNames) { if (e.rawText.toLowerCase().includes(skipName)) return false; }
             return true;
         }).sort((a, b) => {
             if (a.time !== null && b.time !== null) return a.time - b.time;
@@ -1383,7 +1323,7 @@
             return a.originalIndex - b.originalIndex;
         });
 
-        parsedEvents.forEach(e => stringToColor(e.text));
+        parsedEvents.forEach(e => stringToColor(e.displayText));
 
         const gridContainer = document.getElementById('viewModeCalendarGrid');
         gridContainer.innerHTML = '';
@@ -1438,7 +1378,7 @@
                 if (idx < maxVisibleEvents) {
                     const tag = document.createElement('div');
                     tag.className = 'view-tag';
-                    tag.style.backgroundColor = stringToColor(ev.text);
+                    tag.style.backgroundColor = stringToColor(ev.displayText);
                     tag.textContent = extractCleanTitleAndTime(ev.displayText);
                     eventsContainer.appendChild(tag);
                 }
@@ -1466,25 +1406,26 @@
     }
 
     function exportPDF() { 
+        const savedRawInput = localStorage.getItem("monthly_calendar_raw_input") || "";
+        const lines = savedRawInput.split('\n');
+        
         if (mode === "view") {
             const currentMode = mode;
             document.body.classList.remove('view-mode-active');
             document.getElementById('fullCalendar').style.display = 'flex';
             
-            const origMode = mode;
-            mode = "edit";
-            generateCalendar(null);
-            mode = origMode;
+            renderCalculatedView(lines);
 
             setTimeout(() => {
                 window.print();
                 if (currentMode === "view") {
                     document.body.classList.add('view-mode-active');
                     document.getElementById('fullCalendar').style.display = 'none';
+                    renderViewModeCalendar();
                 }
             }, 50);
         } else {
-            generateCalendar(null);
+            renderCalculatedView(lines);
             setTimeout(() => {
                 window.print();
             }, 50);
@@ -1492,25 +1433,16 @@
     }
 
     window.onload = function() {
-        const saved = localStorage.getItem("monthly_calendar_saves");
-        if (saved) {
-            try {
-                const data = JSON.parse(saved);
-                currentSavedMonthsList = Object.keys(data).sort((a, b) => {
-                    const [yA, mA] = a.split('-').map(Number);
-                    const [yB, mB] = b.split('-').map(Number);
-                    return yA !== yB ? yA - yB : mA - mB;
-                });
-                if (currentSavedMonthsList.length > 0) {
-                    currentMonthIndex = 0;
-                    editingMonth = currentSavedMonthsList[0];
-                }
-            } catch(e) {}
+        const savedRawInput = localStorage.getItem("monthly_calendar_raw_input");
+        if (savedRawInput !== null) {
+            document.getElementById('eventInput').value = savedRawInput;
+            const lines = savedRawInput.split('\n');
+            processAndCacheMonths(lines);
+            renderCalculatedView(lines);
+            updateTextareaForCurrentMonth();
+        } else {
+            generateCalendarBtn();
         }
-        updateTitleDisplay();
-        updateNavigationButtons();
-        updateTextareaWithCleanData();
-        generateCalendar(null);
     };
 </script>
 </body>
