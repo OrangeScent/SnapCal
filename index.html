@@ -543,7 +543,7 @@
             padding-left: 4px;
         }
 
-        /* Day Detail Panel Styles */
+        /* Day Detail Panel / Timeline Scrollable Wrapper */
         .day-detail-panel {
             margin-top: 24px;
             background: #ffffff;
@@ -553,7 +553,7 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            max-height: 450px;
+            max-height: 500px;
         }
 
         .day-detail-header {
@@ -565,12 +565,47 @@
             color: #0f172a;
             letter-spacing: 0.5px;
             text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .day-detail-body {
-            padding: 12px 0;
+            padding: 0;
             overflow-y: auto;
             background: #ffffff;
+            scroll-behavior: smooth;
+        }
+
+        .timeline-day-group {
+            border-bottom: 4px solid #f1f5f9;
+        }
+
+        .timeline-day-group:last-child {
+            border-bottom: none;
+        }
+
+        .timeline-day-group.is-selected-day {
+            background-color: #f8fafc;
+        }
+
+        .timeline-date-header {
+            background: #f1f5f9;
+            padding: 10px 20px;
+            font-weight: 700;
+            font-size: 13px;
+            color: #334155;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .timeline-day-group.is-selected-day .timeline-date-header {
+            background: #e2e8f0;
+            color: #0f172a;
+            font-size: 14px;
+            box-shadow: inset 3px 0 0 var(--primary-color);
         }
 
         .detail-event-row {
@@ -616,7 +651,14 @@
         }
 
         .detail-no-events {
-            padding: 32px 20px;
+            padding: 16px 20px;
+            color: #64748b;
+            font-size: 13px;
+            font-style: italic;
+        }
+
+        .detail-welcome-msg {
+            padding: 40px 20px;
             text-align: center;
             color: #64748b;
             font-size: 14px;
@@ -770,9 +812,12 @@
         <div id="viewModeCalendarGrid" class="view-mode-grid"></div>
         
         <div class="day-detail-panel">
-            <div id="dayDetailTitle" class="day-detail-header">Select a date</div>
+            <div class="day-detail-header">
+                <span>Timeline Schedule</span>
+                <span style="font-size: 11px; color: #64748b; font-weight: normal;">Scroll up/down for context</span>
+            </div>
             <div id="dayDetailList" class="day-detail-body">
-                <div class="detail-no-events">Click a calendar day to see details</div>
+                <div class="detail-welcome-msg">Click a calendar day to load the timeline</div>
             </div>
         </div>
     </div>
@@ -785,7 +830,6 @@
     let currentMonthIndex = -1;
     let groupedRawData = {};
 
-    // Extended Navigation and Selection tracking variables
     let initialViewMonth = null; 
     let viewModeCurrentMonth = null; 
     let selectedDateTracker = null; // Object containing {year, month, day}
@@ -1169,7 +1213,7 @@
         if (targetIndex >= 0 && targetIndex < currentSavedMonthsList.length) {
             currentMonthIndex = targetIndex;
             updateTitleDisplay();
-            updateNavigationButtons();
+            updateNavigationButtonsNavigation();
             updateTextareaForCurrentMonth();
         }
     }
@@ -1434,7 +1478,6 @@
             viewModeCurrentMonth = new Date(initialViewMonth.getFullYear(), initialViewMonth.getMonth(), 1);
         }
 
-        // Default highlight choice on initial mode switch to today if matching month, or the 1st of that tracked month
         const realToday = new Date();
         if (realToday.getFullYear() === viewModeCurrentMonth.getFullYear() && realToday.getMonth() === viewModeCurrentMonth.getMonth()) {
             selectedDateTracker = { year: realToday.getFullYear(), month: realToday.getMonth(), day: realToday.getDate() };
@@ -1465,7 +1508,6 @@
         if (targetMonth >= minMonth && targetMonth <= maxMonth) {
             viewModeCurrentMonth = targetMonth;
             
-            // Retain selection if shifting inside same month, otherwise switch selection focus to the 1st of new active month
             if (selectedDateTracker && (selectedDateTracker.year !== viewModeCurrentMonth.getFullYear() || selectedDateTracker.month !== viewModeCurrentMonth.getMonth())) {
                 selectedDateTracker = { year: viewModeCurrentMonth.getFullYear(), month: viewModeCurrentMonth.getMonth(), day: 1 };
             }
@@ -1477,7 +1519,6 @@
     function selectViewDate(year, month, day) {
         selectedDateTracker = { year, month, day };
         
-        // Re-render grid matrix immediately to shift background class assignments
         const cells = document.querySelectorAll('.view-mode-cell');
         cells.forEach(cell => {
             const cY = parseInt(cell.getAttribute('data-year'));
@@ -1490,28 +1531,19 @@
             }
         });
 
-        renderDayDetailPanel();
+        renderDayDetailTimeline();
     }
 
-    function renderDayDetailPanel() {
-        const titleContainer = document.getElementById('dayDetailTitle');
+    function renderDayDetailTimeline() {
         const listContainer = document.getElementById('dayDetailList');
         
         if (!selectedDateTracker) {
-            titleContainer.textContent = "Select a date";
-            listContainer.innerHTML = '<div class="detail-no-events">Click a calendar day to see details</div>';
+            listContainer.innerHTML = '<div class="detail-welcome-msg">Click a calendar day to load the timeline</div>';
             return;
         }
 
         const { year, month, day } = selectedDateTracker;
-        const targetDate = new Date(year, month, day);
-        
-        const daysOfWeekNames = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
-        const realToday = new Date();
-        const isToday = (realToday.getFullYear() === year && realToday.getMonth() === month && realToday.getDate() === day);
-        
-        let dateStringLabel = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        titleContainer.textContent = isToday ? `TODAY ${dateStringLabel}` : `${daysOfWeekNames[targetDate.getDay()]} ${dateStringLabel}`;
+        const baseSelectedDate = new Date(year, month, day);
 
         const savedRawInput = localStorage.getItem("monthly_calendar_raw_input") || "";
         const blocks = splitInputIntoBlocks(savedRawInput);
@@ -1549,75 +1581,139 @@
 
         parsedEvents.forEach(e => stringToColor(e.displayText));
 
-        const dayKey = `${year}-${month}-${day}`;
-        const dailyEvents = parsedEvents.filter(e => e.dateString === dayKey)
-            .sort((a, b) => {
-                if (a.time !== null && b.time !== null) return a.time - b.time;
-                if (a.time !== null) return -1;
-                if (b.time !== null) return 1;
-                return a.originalIndex - b.originalIndex;
-            });
-
         listContainer.innerHTML = '';
 
-        // Add explicit static localized public holidays descriptor if available
-        const holidayKey = `${month + 1}-${day}`;
-        if (hkHolidays[holidayKey]) {
-            const holidayRow = document.createElement('div');
-            holidayRow.className = 'detail-event-row';
-            
-            const dot = document.createElement('div');
-            dot.className = 'detail-event-dot';
-            dot.style.backgroundColor = 'var(--sunday-color)';
-            
-            const content = document.createElement('div');
-            content.className = 'detail-event-content';
-            
-            const titleSpan = document.createElement('span');
-            titleSpan.className = 'detail-event-title';
-            titleSpan.style.color = 'var(--sunday-color)';
-            titleSpan.style.fontWeight = '700';
-            titleSpan.textContent = hkHolidays[holidayKey];
-            
-            content.appendChild(titleSpan);
-            holidayRow.appendChild(dot);
-            holidayRow.appendChild(content);
-            listContainer.appendChild(holidayRow);
-        }
+        const daysOfWeekNames = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+        const realToday = new Date();
+        
+        // Timeline Window Range Configuration: 7 Days Past up to 14 Days Future
+        const startOffset = -7;
+        const endOffset = 14;
+        let selectedDayGroupId = "";
 
-        if (dailyEvents.length === 0 && !hkHolidays[holidayKey]) {
-            listContainer.innerHTML = '<div class="detail-no-events">No events</div>';
-            return;
-        }
+        for (let offset = startOffset; offset <= endOffset; offset++) {
+            const currentTimelineDate = new Date(baseSelectedDate);
+            currentTimelineDate.setDate(baseSelectedDate.getDate() + offset);
 
-        dailyEvents.forEach(ev => {
-            const row = document.createElement('div');
-            row.className = 'detail-event-row';
+            const tYear = currentTimelineDate.getFullYear();
+            const tMonth = currentTimelineDate.getMonth();
+            const tDay = currentTimelineDate.getDate();
+            const tDateStr = `${tYear}-${tMonth}-${tDay}`;
 
-            const dot = document.createElement('div');
-            dot.className = 'detail-event-dot';
-            dot.style.backgroundColor = stringToColor(ev.displayText);
+            const holidayKey = `${tMonth + 1}-${tDay}`;
+            const hasHoliday = !!hkHolidays[holidayKey];
 
-            const content = document.createElement('div');
-            content.className = 'detail-event-content';
+            const dailyEvents = parsedEvents.filter(e => e.dateString === tDateStr)
+                .sort((a, b) => {
+                    if (a.time !== null && b.time !== null) return a.time - b.time;
+                    if (a.time !== null) return -1;
+                    if (b.time !== null) return 1;
+                    return a.originalIndex - b.originalIndex;
+                });
 
-            const timeStr = extractCleanTimeInterval(ev.displayText);
-            if (timeStr) {
-                const timeSpan = document.createElement('span');
-                timeSpan.className = 'detail-event-time';
-                timeSpan.textContent = timeStr;
-                content.appendChild(timeSpan);
+            // Clean skip policy if no events and no holiday exist for secondary days
+            if (offset !== 0 && dailyEvents.length === 0 && !hasHoliday) {
+                continue;
             }
 
-            const titleSpan = document.createElement('span');
-            titleSpan.className = 'detail-event-title';
-            titleSpan.textContent = extractCleanTitleOnly(ev.displayText);
+            const dayGroup = document.createElement('div');
+            dayGroup.className = 'timeline-day-group';
+            
+            const uniqueGroupId = `timeline-day-${tYear}-${tMonth}-${tDay}`;
+            dayGroup.id = uniqueGroupId;
 
-            content.appendChild(titleSpan);
-            row.appendChild(dot);
-            row.appendChild(content);
-            listContainer.appendChild(row);
-        });
+            if (offset === 0) {
+                dayGroup.classList.add('is-selected-day');
+                selectedDayGroupId = uniqueGroupId;
+            }
+
+            const isTimelineDayToday = (realToday.getFullYear() === tYear && realToday.getMonth() === tMonth && realToday.getDate() === tDay);
+            const dateLabelText = `${tYear}-${String(tMonth + 1).padStart(2, '0')}-${String(tDay).padStart(2, '0')}`;
+            const dayNameLabel = isTimelineDayToday ? "TODAY" : daysOfWeekNames[currentTimelineDate.getDay()];
+
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'timeline-date-header';
+            headerDiv.innerHTML = `<span>${dayNameLabel} ${dateLabelText}</span>`;
+            
+            if (offset === 0) {
+                headerDiv.innerHTML += `<span style="font-size: 10px; background: var(--primary-color); color: #fff; padding: 2px 6px; border-radius: 10px;">SELECTED</span>`;
+            }
+            dayGroup.appendChild(headerDiv);
+
+            const eventsContainer = document.createElement('div');
+
+            if (hasHoliday) {
+                const holidayRow = document.createElement('div');
+                holidayRow.className = 'detail-event-row';
+                
+                const dot = document.createElement('div');
+                dot.className = 'detail-event-dot';
+                dot.style.backgroundColor = 'var(--sunday-color)';
+                
+                const content = document.createElement('div');
+                content.className = 'detail-event-content';
+                
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'detail-event-title';
+                titleSpan.style.color = 'var(--sunday-color)';
+                titleSpan.style.fontWeight = '700';
+                titleSpan.textContent = hkHolidays[holidayKey];
+                
+                content.appendChild(titleSpan);
+                holidayRow.appendChild(dot);
+                holidayRow.appendChild(content);
+                eventsContainer.appendChild(holidayRow);
+            }
+
+            if (dailyEvents.length === 0 && !hasHoliday) {
+                const noEvDiv = document.createElement('div');
+                noEvDiv.className = 'detail-no-events';
+                noEvDiv.textContent = "No events";
+                eventsContainer.appendChild(noEvDiv);
+            } else {
+                dailyEvents.forEach(ev => {
+                    const row = document.createElement('div');
+                    row.className = 'detail-event-row';
+
+                    const dot = document.createElement('div');
+                    dot.className = 'detail-event-dot';
+                    dot.style.backgroundColor = stringToColor(ev.displayText);
+
+                    const content = document.createElement('div');
+                    content.className = 'detail-event-content';
+
+                    const timeStr = extractCleanTimeInterval(ev.displayText);
+                    if (timeStr) {
+                        const timeSpan = document.createElement('span');
+                        timeSpan.className = 'detail-event-time';
+                        timeSpan.textContent = timeStr;
+                        content.appendChild(timeSpan);
+                    }
+
+                    const titleSpan = document.createElement('span');
+                    titleSpan.className = 'detail-event-title';
+                    titleSpan.textContent = extractCleanTitleOnly(ev.displayText);
+
+                    content.appendChild(titleSpan);
+                    row.appendChild(dot);
+                    row.appendChild(content);
+                    eventsContainer.appendChild(row);
+                });
+            }
+
+            dayGroup.appendChild(eventsContainer);
+            listContainer.appendChild(dayGroup);
+        }
+
+        // Auto Scroll Matrix to position the Selected Date accurately at top edge of viewport bounds
+        if (selectedDayGroupId) {
+            setTimeout(() => {
+                const targetElement = document.getElementById(selectedDayGroupId);
+                if (targetElement) {
+                    listContainer.scrollTop = targetElement.offsetTop - listContainer.offsetTop;
+                }
+            }, 10);
+        }
     }
 
     function renderViewModeCalendar() {
@@ -1728,7 +1824,6 @@
                 cell.classList.add('selected-date');
             }
 
-            // Attached functional cell level handler invocation for panel refreshing
             cell.onclick = (function(y, m, d) {
                 return function() { selectViewDate(y, m, d); };
             })(year, monthIndex, day);
@@ -1777,8 +1872,7 @@
             gridContainer.appendChild(cell);
         }
 
-        // Trigger detail updates to keep panel synchronous with state change matrix
-        renderDayDetailPanel();
+        renderDayDetailTimeline();
     }
 
     function exportPDF() { 
