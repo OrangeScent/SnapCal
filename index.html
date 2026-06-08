@@ -543,28 +543,26 @@
             padding-left: 4px;
         }
 
-        /* Day Detail Panel / Timeline Scrollable Wrapper */
+        /* Mobile Style Day Detail / Timeline Panel */
         .day-detail-panel {
             margin-top: 24px;
             background: #ffffff;
-            border-radius: 16px 16px 12px 12px;
-            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.06);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
             border: 1px solid #e2e8f0;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            max-height: 500px;
+            max-height: 550px;
         }
 
         .day-detail-header {
-            background: #f8fafc;
-            padding: 16px 20px;
-            border-bottom: 1px solid #e2e8f0;
+            background: #ffffff;
+            padding: 16px 24px;
+            border-bottom: 1px solid #f1f5f9;
             font-weight: 700;
-            font-size: 15px;
+            font-size: 16px;
             color: #0f172a;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -578,7 +576,8 @@
         }
 
         .timeline-day-group {
-            border-bottom: 4px solid #f1f5f9;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
         }
 
         .timeline-day-group:last-child {
@@ -590,46 +589,51 @@
         }
 
         .timeline-date-header {
-            background: #f1f5f9;
-            padding: 10px 20px;
+            padding: 12px 24px 8px 24px;
             font-weight: 700;
-            font-size: 13px;
-            color: #334155;
-            letter-spacing: 0.5px;
+            font-size: 14px;
+            color: #0f172a;
+            letter-spacing: 0.3px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            align-items: baseline;
+            gap: 8px;
         }
 
-        .timeline-day-group.is-selected-day .timeline-date-header {
-            background: #e2e8f0;
-            color: #0f172a;
-            font-size: 14px;
-            box-shadow: inset 3px 0 0 var(--primary-color);
+        .timeline-date-header-label {
+            text-transform: uppercase;
+        }
+
+        .timeline-date-header-sub {
+            font-size: 12px;
+            font-weight: 500;
+            color: #64748b;
         }
 
         .detail-event-row {
             display: flex;
-            align-items: center;
-            padding: 12px 20px;
-            border-bottom: 1px solid #f1f5f9;
-            transition: background-color 0.15s;
+            align-items: flex-start;
+            padding: 10px 24px;
+            margin-bottom: 4px;
         }
 
         .detail-event-row:last-child {
-            border-bottom: none;
+            margin-bottom: 0;
         }
 
-        .detail-event-row:hover {
-            background-color: #f8fafc;
+        .detail-event-left {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 12px;
+            height: 22px; /* Centers with the first line/time block */
+            margin-right: 14px;
+            flex-shrink: 0;
         }
 
         .detail-event-dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            margin-right: 16px;
-            flex-shrink: 0;
         }
 
         .detail-event-content {
@@ -640,25 +644,26 @@
 
         .detail-event-time {
             font-weight: 700;
-            font-size: 13px;
-            color: #334155;
+            font-size: 14px;
+            color: #0f172a;
+            line-height: 1.3;
         }
 
         .detail-event-title {
             font-size: 14px;
-            color: #0f172a;
-            font-weight: 500;
+            color: #334155;
+            font-weight: 400;
+            line-height: 1.4;
         }
 
         .detail-no-events {
-            padding: 16px 20px;
-            color: #64748b;
-            font-size: 13px;
-            font-style: italic;
+            padding: 10px 24px 14px 24px;
+            color: #94a3b8;
+            font-size: 14px;
         }
 
         .detail-welcome-msg {
-            padding: 40px 20px;
+            padding: 40px 24px;
             text-align: center;
             color: #64748b;
             font-size: 14px;
@@ -813,8 +818,7 @@
         
         <div class="day-detail-panel">
             <div class="day-detail-header">
-                <span>Timeline Schedule</span>
-                <span style="font-size: 11px; color: #64748b; font-weight: normal;">Scroll up/down for context</span>
+                <span>Schedule Timeline</span>
             </div>
             <div id="dayDetailList" class="day-detail-body">
                 <div class="detail-welcome-msg">Click a calendar day to load the timeline</div>
@@ -832,7 +836,7 @@
 
     let initialViewMonth = null; 
     let viewModeCurrentMonth = null; 
-    let selectedDateTracker = null; // Object containing {year, month, day}
+    let selectedDateTracker = null; 
 
     const hkHolidays = {
         "1-1": "New Year", "4-4": "Ching Ming", "5-1": "Labour Day",
@@ -1213,7 +1217,7 @@
         if (targetIndex >= 0 && targetIndex < currentSavedMonthsList.length) {
             currentMonthIndex = targetIndex;
             updateTitleDisplay();
-            updateNavigationButtonsNavigation();
+            updateNavigationButtons();
             updateTextareaForCurrentMonth();
         }
     }
@@ -1586,7 +1590,6 @@
         const daysOfWeekNames = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
         const realToday = new Date();
         
-        // Timeline Window Range Configuration: 7 Days Past up to 14 Days Future
         const startOffset = -7;
         const endOffset = 14;
         let selectedDayGroupId = "";
@@ -1611,7 +1614,6 @@
                     return a.originalIndex - b.originalIndex;
                 });
 
-            // Clean skip policy if no events and no holiday exist for secondary days
             if (offset !== 0 && dailyEvents.length === 0 && !hasHoliday) {
                 continue;
             }
@@ -1628,16 +1630,27 @@
             }
 
             const isTimelineDayToday = (realToday.getFullYear() === tYear && realToday.getMonth() === tMonth && realToday.getDate() === tDay);
+            
+            const tomorrowDate = new Date(realToday);
+            tomorrowDate.setDate(realToday.getDate() + 1);
+            const isTimelineDayTomorrow = (tomorrowDate.getFullYear() === tYear && tomorrowDate.getMonth() === tMonth && tomorrowDate.getDate() === tDay);
+
             const dateLabelText = `${tYear}-${String(tMonth + 1).padStart(2, '0')}-${String(tDay).padStart(2, '0')}`;
-            const dayNameLabel = isTimelineDayToday ? "TODAY" : daysOfWeekNames[currentTimelineDate.getDay()];
+            
+            let dayNameLabel = daysOfWeekNames[currentTimelineDate.getDay()];
+            if (isTimelineDayToday) {
+                dayNameLabel = "TODAY";
+            } else if (isTimelineDayTomorrow) {
+                dayNameLabel = "TOMORROW";
+            }
 
             const headerDiv = document.createElement('div');
             headerDiv.className = 'timeline-date-header';
-            headerDiv.innerHTML = `<span>${dayNameLabel} ${dateLabelText}</span>`;
+            headerDiv.innerHTML = `
+                <span class="timeline-date-header-label">${dayNameLabel}</span>
+                <span class="timeline-date-header-sub">${dateLabelText}</span>
+            `;
             
-            if (offset === 0) {
-                headerDiv.innerHTML += `<span style="font-size: 10px; background: var(--primary-color); color: #fff; padding: 2px 6px; border-radius: 10px;">SELECTED</span>`;
-            }
             dayGroup.appendChild(headerDiv);
 
             const eventsContainer = document.createElement('div');
@@ -1646,12 +1659,20 @@
                 const holidayRow = document.createElement('div');
                 holidayRow.className = 'detail-event-row';
                 
+                const leftDiv = document.createElement('div');
+                leftDiv.className = 'detail-event-left';
                 const dot = document.createElement('div');
                 dot.className = 'detail-event-dot';
                 dot.style.backgroundColor = 'var(--sunday-color)';
+                leftDiv.appendChild(dot);
                 
                 const content = document.createElement('div');
                 content.className = 'detail-event-content';
+                
+                const timeSpan = document.createElement('span');
+                timeSpan.className = 'detail-event-time';
+                timeSpan.style.color = 'var(--sunday-color)';
+                timeSpan.textContent = "All Day";
                 
                 const titleSpan = document.createElement('span');
                 titleSpan.className = 'detail-event-title';
@@ -1659,8 +1680,9 @@
                 titleSpan.style.fontWeight = '700';
                 titleSpan.textContent = hkHolidays[holidayKey];
                 
+                content.appendChild(timeSpan);
                 content.appendChild(titleSpan);
-                holidayRow.appendChild(dot);
+                holidayRow.appendChild(leftDiv);
                 holidayRow.appendChild(content);
                 eventsContainer.appendChild(holidayRow);
             }
@@ -1675,27 +1697,28 @@
                     const row = document.createElement('div');
                     row.className = 'detail-event-row';
 
+                    const leftDiv = document.createElement('div');
+                    leftDiv.className = 'detail-event-left';
                     const dot = document.createElement('div');
                     dot.className = 'detail-event-dot';
                     dot.style.backgroundColor = stringToColor(ev.displayText);
+                    leftDiv.appendChild(dot);
 
                     const content = document.createElement('div');
                     content.className = 'detail-event-content';
 
                     const timeStr = extractCleanTimeInterval(ev.displayText);
-                    if (timeStr) {
-                        const timeSpan = document.createElement('span');
-                        timeSpan.className = 'detail-event-time';
-                        timeSpan.textContent = timeStr;
-                        content.appendChild(timeSpan);
-                    }
+                    const timeSpan = document.createElement('span');
+                    timeSpan.className = 'detail-event-time';
+                    timeSpan.textContent = timeStr ? timeStr : "All Day";
+                    content.appendChild(timeSpan);
 
                     const titleSpan = document.createElement('span');
                     titleSpan.className = 'detail-event-title';
                     titleSpan.textContent = extractCleanTitleOnly(ev.displayText);
-
                     content.appendChild(titleSpan);
-                    row.appendChild(dot);
+
+                    row.appendChild(leftDiv);
                     row.appendChild(content);
                     eventsContainer.appendChild(row);
                 });
@@ -1705,7 +1728,6 @@
             listContainer.appendChild(dayGroup);
         }
 
-        // Auto Scroll Matrix to position the Selected Date accurately at top edge of viewport bounds
         if (selectedDayGroupId) {
             setTimeout(() => {
                 const targetElement = document.getElementById(selectedDayGroupId);
