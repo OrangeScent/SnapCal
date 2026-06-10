@@ -782,9 +782,6 @@
             font-weight: 500;
         }
 
-        /* ==========================================================================
-           FLOATING ACTION BUTTON & EVENT EDIT MODAL (BOTTOM SHEET)
-           ========================================================================== */
         .floating-add-btn {
             position: fixed;
             bottom: calc(24px + var(--safe-area-bottom));
@@ -891,7 +888,6 @@
             fill: #64748b;
         }
 
-        /* Form Controls */
         .modal-color-circle {
             width: 44px;
             height: 44px;
@@ -925,7 +921,6 @@
             font-size: 16px;
         }
 
-        /* Date Range Component */
         .date-range-container {
             display: flex;
             align-items: center;
@@ -974,7 +969,6 @@
             border-color: var(--primary-color);
         }
 
-        /* Circular Check Button */
         .modal-save-btn {
             align-self: flex-end;
             width: 50px;
@@ -1264,7 +1258,6 @@
     let viewModeCurrentMonth = null; 
     let selectedDateTracker = null; 
 
-    // Context variable to remember if we are currently editing an existing line
     let activelyEditingBlockIndex = null;
 
     let touchStartX = 0;
@@ -1273,12 +1266,9 @@
     let touchEndY = 0;
 
     let sampleContentActive = true;
-    const sampleGuidanceText = `1/5-1/7 Math 16:00-17:00 (Fri)
-17-23/6 Exam
-29/6 playdate 1300-1500
-6/6/2026 - 30/7/2026 Training (Mon/Wed)
-1/6-30/7 Claire Swim 1000-1100 (Mon)(skip15/6-23/6)
-1/6-30/6 English 16:00-17:00 (Tue/Thur)`;
+    const sampleGuidanceText = `2026/05/01 Labor Day (Fri)
+2026/05/02 Meeting 14:00–15:00
+2026/05/03 Project (Mon)(skip:2026/05/10)`;
 
     const hkHolidays = {
         "1-1": "New Year", "4-4": "Ching Ming", "5-1": "Labour Day",
@@ -1446,22 +1436,36 @@
                 if (lowerToken === 'holiday' || lowerToken === 'holidays') { skipHolidays = true; return; }
                 if (lowerToken === 'exam' || lowerToken === 'exams') { skipExams = true; return; }
                 if (dayMap[lowerToken] !== undefined) { skipDaysList.push(dayMap[lowerToken]); return; }
+                
+                // Support both YYYY/MM/DD and DD/MM/YYYY inside skip directives
                 if (cleanToken.includes('-') && cleanToken.includes('/')) {
                     const parts = cleanToken.split('-');
                     if (parts.length === 2) {
                         const startParts = parts[0].split('/'); const endParts = parts[1].split('/');
                         if (startParts.length >= 2 && endParts.length >= 2) {
-                            const sd = parseInt(startParts[0]), sm = parseInt(startParts[1]) - 1;
-                            const sy = startParts[2] ? parseYear(startParts[2]) : targetYear;
-                            const ed = parseInt(endParts[0]), em = parseInt(endParts[1]) - 1;
-                            const ey = endParts[2] ? parseYear(endParts[2]) : sy;
+                            let sd, sm, sy, ed, em, ey;
+                            if (startParts[0].length === 4) {
+                                sy = parseInt(startParts[0]); sm = parseInt(startParts[1]) - 1; sd = parseInt(startParts[2]);
+                            } else {
+                                sd = parseInt(startParts[0]); sm = parseInt(startParts[1]) - 1; sy = startParts[2] ? parseYear(startParts[2]) : targetYear;
+                            }
+                            if (endParts[0].length === 4) {
+                                ey = parseInt(endParts[0]); em = parseInt(endParts[1]) - 1; ed = parseInt(endParts[2]);
+                            } else {
+                                ed = parseInt(endParts[0]); em = parseInt(endParts[1]) - 1; ey = endParts[2] ? parseYear(endParts[2]) : sy;
+                            }
                             skipRanges.push({ start: new Date(sy, sm, sd), end: new Date(ey, em, ed) }); return;
                         }
                     }
                 }
                 const parts = cleanToken.split('/');
                 if (parts.length >= 2) {
-                    const d = parseInt(parts[0]), m = parseInt(parts[1]) - 1, y = parts[2] ? parseYear(parts[2]) : targetYear;
+                    let d, m, y;
+                    if (parts[0].length === 4) {
+                        y = parseInt(parts[0]); m = parseInt(parts[1]) - 1; d = parseInt(parts[2]);
+                    } else {
+                        d = parseInt(parts[0]); m = parseInt(parts[1]) - 1; y = parts[2] ? parseYear(parts[2]) : targetYear;
+                    }
                     const validDate = new Date(y, m, d);
                     if (!isNaN(validDate.getTime())) { skipDates.push(`${y}-${m}-${d}`); return; }
                 }
@@ -1470,14 +1474,6 @@
                     if (!globalSkipNames.includes(normName)) globalSkipNames.push(normName);
                 }
             });
-            if (!contents.includes('/') && !contents.includes('-')) {
-                const lowerContents = contents.toLowerCase();
-                const hasKeyword = keywordList.some(k => lowerContents.includes(k));
-                if (!hasKeyword) {
-                    const normName = contents.toLowerCase();
-                    if (!globalSkipNames.includes(normName)) globalSkipNames.push(normName);
-                }
-            }
         }
         cleanedLine = cleanedLine.replace(/\(\s*skip\s*:?\s*([^)]+)\)/ig, '').trim();
         return { skipDates, skipRanges, skipDaysList, skipHolidays, skipExams, cleanedLine };
@@ -1487,11 +1483,59 @@
         const rawTextCleaned = normalizeDashes(blockText.replace(/\n/g, " ").trim());
         if (!rawTextCleaned) return null;
         let startYEstimate = currentYear;
-        const initialYearMatch = rawTextCleaned.match(/\/(\d{2,4})/);
+        
+        // Find first occurrence of a 4-digit year or standard slash pattern
+        const initialYearMatch = rawTextCleaned.match(/\b(\d{4})\b/) || rawTextCleaned.match(/\/(\d{2,4})/);
         if (initialYearMatch) startYEstimate = parseYear(initialYearMatch[1]);
 
         let { skipDates, skipRanges, skipDaysList, skipHolidays, skipExams, cleanedLine } = parseSkipDirectives(rawTextCleaned, startYEstimate);
 
+        // Pattern 1: YYYY/MM/DD - YYYY/MM/DD Range
+        const ymdRangeMatch = cleanedLine.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})\s*-\s*(\d{4})\/(\d{1,2})\/(\d{1,2})\s+([^]+)$/);
+        if (ymdRangeMatch) {
+            let startY = parseInt(ymdRangeMatch[1]), startM = parseInt(ymdRangeMatch[2]) - 1, startD = parseInt(ymdRangeMatch[3]);
+            let endY = parseInt(ymdRangeMatch[4]), endM = parseInt(ymdRangeMatch[5]) - 1, endD = parseInt(ymdRangeMatch[6]);
+            let rest = ymdRangeMatch[7].trim(); let dayFilter = [];
+            const pMatch = rest.match(/\(([^)]+)\)$/);
+            if (pMatch) {
+                dayFilter = parseDays(pMatch[1]);
+                if (dayFilter.length > 0) rest = rest.replace(/\s*\([^)]+\)$/, '').trim();
+            }
+            let allDates = expandDateRange(new Date(startY, startM, startD), new Date(endY, endM, endD));
+            if (dayFilter.length > 0) allDates = allDates.filter(d => dayFilter.includes(d.getDay()));
+            allDates = allDates.filter(d => {
+                if (skipDates.includes(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`)) return false;
+                for (let r of skipRanges) { if (d >= r.start && d <= r.end) return false; }
+                if (skipHolidays && hkHolidays[`${d.getMonth() + 1}-${d.getDate()}`]) return false;
+                if (skipDaysList.includes(d.getDay())) return false;
+                return true;
+            });
+            return { dates: allDates, rawText: rest, originalIndex: index, skipExams };
+        }
+
+        // Pattern 2: YYYY/MM/DD Single Date
+        const ymdSingleMatch = cleanedLine.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+([^]+)$/);
+        if (ymdSingleMatch) {
+            let y = parseInt(ymdSingleMatch[1]), m = parseInt(ymdSingleMatch[2]) - 1, d = parseInt(ymdSingleMatch[3]);
+            let rest = ymdSingleMatch[4].trim(); let dayFilter = [];
+            const pMatch = rest.match(/\(([^)]+)\)$/);
+            if (pMatch) {
+                dayFilter = parseDays(pMatch[1]);
+                if (dayFilter.length > 0) rest = rest.replace(/\s*\([^)]+\)$/, '').trim();
+            }
+            let allDates = [new Date(y, m, d)];
+            if (dayFilter.length > 0) allDates = allDates.filter(d => dayFilter.includes(d.getDay()));
+            allDates = allDates.filter(d => {
+                if (skipDates.includes(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`)) return false;
+                for (let r of skipRanges) { if (d >= r.start && d <= r.end) return false; }
+                if (skipHolidays && hkHolidays[`${d.getMonth() + 1}-${d.getDate()}`]) return false;
+                if (skipDaysList.includes(d.getDay())) return false;
+                return true;
+            });
+            return { dates: allDates, rawText: rest, originalIndex: index, skipExams };
+        }
+
+        // Pattern 3: DD/MM/YYYY - DD/MM/YYYY Range (Fallback Support)
         const crossMatch = cleanedLine.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s*-\s*(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s+([^]+)$/);
         if (crossMatch) {
             let startD = parseInt(crossMatch[1]), startM = parseInt(crossMatch[2]) - 1;
@@ -1515,9 +1559,10 @@
                 if (skipDaysList.includes(d.getDay())) return false;
                 return true;
             });
-            return { dates: allDates, rawText: crossMatch[7].trim(), originalIndex: index, skipExams };
+            return { dates: allDates, rawText: rest, originalIndex: index, skipExams };
         }
 
+        // Pattern 4: DD - DD/MM/YYYY Short Range (Fallback Support)
         const shortRangeMatch = cleanedLine.match(/^(\d{1,2})\s*-\s*(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s+([^]+)$/);
         if (shortRangeMatch) {
             let startD = parseInt(shortRangeMatch[1]), endD = parseInt(shortRangeMatch[2]);
@@ -1534,6 +1579,7 @@
             return { dates: allDates, rawText, originalIndex: index, skipExams };
         }
 
+        // Pattern 5: DD/MM/YYYY Single Date (Fallback Support)
         const singleDateMatch = cleanedLine.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s+([^]+)$/);
         if (singleDateMatch) {
             let d = parseInt(singleDateMatch[1]), m = parseInt(singleDateMatch[2]) - 1, y = parseYear(singleDateMatch[3]);
@@ -2196,7 +2242,6 @@
                     const row = document.createElement('div');
                     row.className = 'detail-event-row';
                     
-                    // Click handler to open editing modal for CASE B (EVENT SELECTED)
                     row.onclick = function(e) {
                         e.stopPropagation();
                         openEventModalForExistingEvent(ev.originalIndex);
@@ -2471,22 +2516,15 @@
     eventTextarea.addEventListener('keydown', clearSampleGuidanceTextHandler);
     eventTextarea.addEventListener('mousedown', clearSampleGuidanceTextHandler);
     eventTextarea.addEventListener('touchstart', clearSampleGuidanceTextHandler, { passive: true });
-
-    // ==========================================================================
-    // NEW MODAL LOGIC & DATA MANAGEMENT SUB SYSTEMS
-    // ==========================================================================
     
-    // Helper to turn dates into HTML input compliant string "YYYY-MM-DD"
     function formatToISODate(year, monthIndex, day) {
         return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
 
     function openEventModalFromButton() {
-        // Clear all previous inputs as base state
         resetModalFormFields();
         activelyEditingBlockIndex = null;
         
-        // Ensure sample data auto-clears on creation interactions
         if (sampleContentActive) {
             sampleContentActive = false;
             eventTextarea.classList.remove("sample-guidance-active");
@@ -2494,7 +2532,6 @@
             localStorage.setItem("monthly_calendar_raw_input", "");
         }
 
-        // CASE A — DATE SELECTED
         if (selectedDateTracker) {
             const isoStr = formatToISODate(selectedDateTracker.year, selectedDateTracker.month, selectedDateTracker.day);
             document.getElementById('modalStartDate').value = isoStr;
@@ -2506,10 +2543,7 @@
             document.getElementById('modalEndDate').value = fallbackStr;
         }
 
-        // Apply automatic contextual preview assignment color
         updateModalColorCirclePreview();
-        
-        // Open Bottom Sheet Form
         document.getElementById('eventEditModalOverlay').classList.add('active');
     }
 
@@ -2522,13 +2556,9 @@
         const targetedBlock = blocks[originalBlockIndex];
         if (!targetedBlock) return;
 
-        // Parse internal parameters for metadata injection fallback matches
         const parsedData = parseBlock(targetedBlock, originalBlockIndex);
-        
-        // Pre-fill fields with structured info extracted from strings
         let cleanTitleText = targetedBlock;
         
-        // Attempt parsing structured range representation
         if (parsedData && parsedData.dates && parsedData.dates.length > 0) {
             const sortedDates = [...parsedData.dates].sort((a,b) => a - b);
             const firstDate = sortedDates[0];
@@ -2537,11 +2567,9 @@
             document.getElementById('modalStartDate').value = formatToISODate(firstDate.getFullYear(), firstDate.getMonth(), firstDate.getDate());
             document.getElementById('modalEndDate').value = formatToISODate(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
             
-            // Clean title definition lookup metrics
             cleanTitleText = getDisplayText(parsedData.rawText);
         }
 
-        // De-serialize parameters from raw metadata store injection strings if present
         const metadataMap = getMetadataStore();
         const record = metadataMap[targetedBlock.trim()];
         
@@ -2553,10 +2581,8 @@
             document.getElementById('modalLocationInput').value = record.location || "";
             document.getElementById('modalNotesInput').value = record.notes || "";
         } else {
-            // Fallback string extraction logic parsing patterns
             document.getElementById('modalEventTitle').value = cleanTitleText;
             
-            // Look up inline text brackets for repeat or skip extractions
             const repeatMatch = targetedBlock.match(/\((Mon|Tue|Wed|Thu|Fri|Sat|Sun)[^)]*\)/i);
             if (repeatMatch) {
                 document.getElementById('modalRepeatInput').value = repeatMatch[1];
@@ -2589,7 +2615,6 @@
         document.getElementById('modalColorCircle').style.backgroundColor = stringToColor(displayLabel);
     }
 
-    // Attach real-time coloring logic feedback to model text inputs
     document.getElementById('modalEventTitle').addEventListener('input', updateModalColorCirclePreview);
 
     function closeEventModalOnOverlay(event) {
@@ -2630,68 +2655,58 @@
             return;
         }
 
-        // Parse ISO picker objects back into target day/month components
         const startParts = startDateVal.split('-');
         const endParts = endDateVal.split('-');
         
         const sY = parseInt(startParts[0]), sM = parseInt(startParts[1]), sD = parseInt(startParts[2]);
         const eY = parseInt(endParts[0]), eM = parseInt(endParts[1]), eD = parseInt(endParts[2]);
 
-        // Generate full-fidelity calendar data string sequence representation
+        // Output lines formatted as YYYY/MM/DD matching standard instruction layouts
         let lineString = "";
+        const formattedStartStr = `${sY}/${String(sM).padStart(2, '0')}/${String(sD).padStart(2, '0')}`;
+        const formattedEndStr = `${eY}/${String(eM).padStart(2, '0')}/${String(eD).padStart(2, '0')}`;
+
         if (sY === eY && sM === eM && sD === eD) {
-            // Single date layout conversion formula
-            lineString = `${sD}/${sM}/${sY} ${title}`;
+            lineString = `${formattedStartStr} ${title}`;
         } else {
-            // Range string layout composition algorithm
-            lineString = `${sD}/${sM}/${sY} - ${eD}/${eM}/${eY} ${title}`;
+            lineString = `${formattedStartStr} - ${formattedEndStr} ${title}`;
         }
 
-        // Append explicit bracketed configurations to the raw line mapping
         if (repeat) {
             lineString += ` (${repeat})`;
         }
         if (skip) {
-            lineString += ` (skip${skip})`;
+            lineString += ` (skip:${skip})`;
         }
 
-        // Cache descriptive non-syntax parameters to separate internal local metadata schema database
         const metadataMap = getMetadataStore();
         metadataMap[lineString.trim()] = { title, repeat, skip, alarm, location, notes };
         saveMetadataStore(metadataMap);
 
-        // Commit modifications back onto structural tracking instances
         let currentRawText = localStorage.getItem("monthly_calendar_raw_input") || "";
         let blocks = splitInputIntoBlocks(currentRawText);
 
         if (activelyEditingBlockIndex !== null && activelyEditingBlockIndex >= 0 && activelyEditingBlockIndex < blocks.length) {
-            // Perform text substitution
             blocks[activelyEditingBlockIndex] = lineString;
         } else {
-            // Append line item
             blocks.push(lineString);
         }
 
         const modernMergedOutput = blocks.join('\n\n');
         localStorage.setItem("monthly_calendar_raw_input", modernMergedOutput);
 
-        // Sync view update mutations
         processAndCacheMonths(blocks);
         renderCalculatedView(blocks);
         updateTextareaForCurrentMonth();
 
-        // Refresh single view panel trackers inside context states
         if (mode === "view") {
-            // Keep user on the edited date inside view context
             selectedDateTracker = { year: sY, month: sM - 1, day: sD };
             viewModeCurrentMonth = new Date(sY, sM - 1, 1);
             renderViewModeCalendar();
         }
 
-        // Close modal component layout
         document.getElementById('eventEditModalOverlay').classList.remove('active');
         
-        // Fire animation trigger notice update toast notifications
         const feedback = document.getElementById("feedbackMsg");
         feedback.classList.add("show");
         setTimeout(() => feedback.classList.remove("show"), 2000);
@@ -2709,6 +2724,8 @@
             renderCalculatedView(blocks);
             updateTextareaForCurrentMonth();
         } else {
+            // New strict configuration baseline rules:
+            // Textarea holds placeholder hint context but actual structural state stays unparsed
             sampleContentActive = true;
             eventTextarea.classList.add("sample-guidance-active");
             eventTextarea.value = sampleGuidanceText;
